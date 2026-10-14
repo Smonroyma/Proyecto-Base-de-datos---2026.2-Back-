@@ -31,31 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-# HELP / IDE specific files (IntelliJ IDEA)
-.idea/
-*.iml
-*.iws
-*.ipr
-out/
-gen/
-
-# Maven / Build
-target/
-.mvn/support/
-.mvn/plugins/
-hs_err_pid*
-
-# Spring Boot
-*.log
-.sts4-cache/
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
