@@ -31,4 +31,6 @@ public interface ProductoRepository {
 
     boolean existsByNombreAndNotId(String nombre, Long id);
 
+    boolean updateStock(Long idProducto, Integer nuevoStock);
+
 }

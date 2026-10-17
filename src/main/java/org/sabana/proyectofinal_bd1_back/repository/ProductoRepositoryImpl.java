@@ -152,4 +152,11 @@ public class ProductoRepositoryImpl implements ProductoRepository {
         return count != null && count > 0;
     }
 
+    @Override
+    public boolean updateStock(Long idProducto, Integer nuevoStock) {
+        String sql = "UPDATE producto SET stock = ? WHERE id_producto = ?";
+        int rowsAffected = jdbcTemplate.update(sql, nuevoStock, idProducto);
+        return rowsAffected > 0;
+    }
+
 }

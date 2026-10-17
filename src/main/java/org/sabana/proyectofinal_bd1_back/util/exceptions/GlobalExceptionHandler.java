@@ -18,7 +18,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({ResourceNotFoundException.class, CategoriaNotFoundException.class, ProductoNotFoundException.class, ReservaNotFoundException.class})
+    @ExceptionHandler({ResourceNotFoundException.class, CategoriaNotFoundException.class, ProductoNotFoundException.class, ReservaNotFoundException.class, PedidoNotFoundException.class})
     public ResponseEntity<ErrorResponseDTO> handleResourceNotFoundException(
             ResourceNotFoundException ex, HttpServletRequest request) {
 
@@ -31,6 +31,21 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<ErrorResponseDTO> handleStockInsuficienteException(
+            StockInsuficienteException ex, HttpServletRequest request) {
+
+        ErrorResponseDTO error = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
+                .error(HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 
     @ExceptionHandler({DuplicateResourceException.class, CategoriaAlreadyExistsException.class, ProductoAlreadyExistsException.class, ReservaConflictException.class})
