@@ -18,7 +18,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({ResourceNotFoundException.class, CategoriaNotFoundException.class})
+    @ExceptionHandler({ResourceNotFoundException.class, CategoriaNotFoundException.class, ProductoNotFoundException.class})
     public ResponseEntity<ErrorResponseDTO> handleResourceNotFoundException(
             ResourceNotFoundException ex, HttpServletRequest request) {
 
@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler({DuplicateResourceException.class, CategoriaAlreadyExistsException.class})
+    @ExceptionHandler({DuplicateResourceException.class, CategoriaAlreadyExistsException.class, ProductoAlreadyExistsException.class})
     public ResponseEntity<ErrorResponseDTO> handleDuplicateResourceException(
             DuplicateResourceException ex, HttpServletRequest request) {
 
