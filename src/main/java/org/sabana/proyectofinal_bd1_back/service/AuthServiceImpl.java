@@ -82,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
             LocalDateTime expiracion = LocalDateTime.now().plusMinutes(OTP_VIGENCIA_MINUTOS);
 
             usuarioRepository.guardarCodigoOTP(usuario.getIdUsuario(), codigoOtp, expiracion);
-            emailService.enviarCorreoOtp(usuario.getEmail(), usuario.getNombre(), codigoOtp, OTP_VIGENCIA_MINUTOS);
+            emailService.sendOtpEmail(usuario.getEmail(), usuario.getNombre(), codigoOtp, OTP_VIGENCIA_MINUTOS);
 
             return AuthResponseDTO.builder()
                     .token(null)

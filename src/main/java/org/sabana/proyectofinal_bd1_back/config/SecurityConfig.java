@@ -59,7 +59,7 @@ public class SecurityConfig {
                             }
                             """.formatted(LocalDateTime.now(), request.getRequestURI()));
                 }))
-                .authorizeHttpRequests(auth -> auth
+                /*.authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",
@@ -69,6 +69,9 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/usuarios/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated()
+                )*/
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

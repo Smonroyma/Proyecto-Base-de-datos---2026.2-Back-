@@ -29,6 +29,7 @@ import org.sabana.proyectofinal_bd1_back.repository.MetodoPagoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PagoFacturaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PedidoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
+import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.FacturaNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.MetodoPagoNotFoundException;
@@ -78,6 +79,9 @@ class FacturaServiceImplTest {
 
     @Mock
     private FacturaMapper facturaMapper;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private FacturaServiceImpl facturaService;
@@ -185,7 +189,7 @@ class FacturaServiceImplTest {
     }
 
     @Test
-    @DisplayName("emitirFactura con pago único procesa cobro, marca pedido PAGADO y libera mesa a DISPONIBLE")
+    @DisplayName("emitirFactura con pago único procesa cobro, marca pedido PAGADO, libera mesa a DISPONIBLE y envía factura HTML por correo")
     void emitirFactura_PagoUnicoYMesa_Exitoso() {
         PagoRequestDTO pagoUnico = PagoRequestDTO.builder()
                 .idMetodoPago(1L)
@@ -222,6 +226,7 @@ class FacturaServiceImplTest {
         verify(facturaRepository).save(any(Factura.class));
         verify(pagoFacturaRepository).saveBatch(anyList());
         verify(pedidoRepository).updateEstado(50L, EstadoPedido.PAGADO.name());
+        verify(emailService).sendFacturaEmail("carlos@example.com", facturaResponseDTO);
 
         ArgumentCaptor<Mesa> mesaCaptor = ArgumentCaptor.forClass(Mesa.class);
         verify(mesaRepository).update(mesaCaptor.capture());

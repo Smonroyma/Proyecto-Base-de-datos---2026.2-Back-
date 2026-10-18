@@ -1,21 +1,20 @@
 package org.sabana.proyectofinal_bd1_back.util.email;
 
+import org.sabana.proyectofinal_bd1_back.model.dto.FacturaResponseDTO;
+import org.sabana.proyectofinal_bd1_back.model.dto.PagoResponseDTO;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
- * Generador de plantillas HTML para correos electrónicos corporativos de Savana Data Coffee.
+ * Generador de plantillas HTML para correos electrónicos corporativos de Savana Coffee.
  * Utiliza estilos en línea (inline CSS) para asegurar compatibilidad total en clientes de correo.
  */
 @Component
 public class EmailTemplateBuilder {
 
     /**
-     * Construye la plantilla HTML para el código de verificación en dos pasos (2FA / OTP).
-     *
-     * @param nombreUsuario Nombre del usuario destinatario
-     * @param codigoOtp     Código numérico de 6 dígitos
-     * @param minutosValidez Minutos de vigencia del código
-     * @return Cadena con el documento HTML listo para enviar
+     * Plantilla 1: Código de verificación en dos pasos (2FA / OTP).
      */
     public String buildOtpEmailTemplate(String nombreUsuario, String codigoOtp, int minutosValidez) {
         return """
@@ -32,7 +31,7 @@ public class EmailTemplateBuilder {
                 
                   <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width:600px; background-color:#FFFFFF; border-radius:16px; overflow:hidden; border:1px solid #E6CCB2;">
                 
-                    <!-- Barra superior (estilo navbar) -->
+                    <!-- Barra superior -->
                     <tr>
                       <td align="center" style="background-color:#EDE0D4; padding:28px 20px; border-bottom:1px solid #E6CCB2;">
                         <div style="font-size:26px; letter-spacing:4px; color:#7F5539; text-transform:uppercase;">
@@ -47,7 +46,6 @@ public class EmailTemplateBuilder {
                     <!-- Cuerpo -->
                     <tr>
                       <td style="padding:36px 35px 28px 35px; color:#432818; background-color:#F4F0EC;">
-                
                         <h2 style="margin:0 0 22px 0; padding-bottom:8px; border-bottom:2px solid #B08968; color:#7F5539; font-size:24px; font-weight:normal;">
                           Verificación en dos pasos
                         </h2>
@@ -83,7 +81,7 @@ public class EmailTemplateBuilder {
                       </td>
                     </tr>
                 
-                    <!-- Pie (estilo footer) -->
+                    <!-- Pie -->
                     <tr>
                       <td align="center" style="background-color:#EDE0D4; padding:24px 20px; border-top:1px solid #E6CCB2;">
                         <p style="margin:0 0 6px 0; font-size:12px; color:#7F5539; font-weight:bold;">
@@ -103,4 +101,277 @@ public class EmailTemplateBuilder {
             """.formatted(nombreUsuario, codigoOtp, minutosValidez);
     }
 
+    /**
+     * Plantilla 2: Notificación general de eventos (Creaciones, Actualizaciones, Cancelaciones).
+     * Sirve para Reservas, Cuentas de Usuario/Cliente, Estados de Pedidos, etc.
+     *
+     * @param tituloEncabezado Subtítulo en el header (ej: "Confirmación de Reserva", "Gestión de Cuenta")
+     * @param nombreDestinatario Nombre de quien recibe
+     * @param mensajePrincipal Texto introductorio
+     * @param detalles Clave-Valor con los datos relevantes (ej: "Mesa": "Mesa 4", "Fecha": "2026-10-18 19:00")
+     * @param notaPie Advertencia o aclaración adicional
+     */
+    public String buildNotificacionGeneralTemplate(String tituloEncabezado,
+                                                   String nombreDestinatario,
+                                                   String mensajePrincipal,
+                                                   Map<String, String> detalles,
+                                                   String notaPie) {
+        StringBuilder filasDetalle = new StringBuilder();
+        if (detalles != null && !detalles.isEmpty()) {
+            for (Map.Entry<String, String> entry : detalles.entrySet()) {
+                filasDetalle.append("""
+                    <tr>
+                      <td style="padding:10px 14px; border-bottom:1px solid #E6CCB2; font-size:14px; color:#7F5539; font-weight:bold; width:40%%;">
+                        %s
+                      </td>
+                      <td style="padding:10px 14px; border-bottom:1px solid #E6CCB2; font-size:14px; color:#432818;">
+                        %s
+                      </td>
+                    </tr>
+                """.formatted(entry.getKey(), entry.getValue()));
+            }
+        }
+
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>%s - Savana Coffee</title>
+                </head>
+                <body style="margin:0; padding:0; background-color:#F4F0EC; font-family:Georgia,'Times New Roman',serif; -webkit-font-smoothing:antialiased;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#F4F0EC; padding:30px 10px;">
+                <tr><td align="center">
+                
+                  <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width:600px; background-color:#FFFFFF; border-radius:16px; overflow:hidden; border:1px solid #E6CCB2;">
+                
+                    <!-- Barra superior -->
+                    <tr>
+                      <td align="center" style="background-color:#EDE0D4; padding:28px 20px; border-bottom:1px solid #E6CCB2;">
+                        <div style="font-size:26px; letter-spacing:4px; color:#7F5539; text-transform:uppercase;">
+                          Savana Coffee
+                        </div>
+                        <div style="font-size:12px; letter-spacing:3px; color:#9C6644; padding-top:6px; text-transform:uppercase;">
+                          %s
+                        </div>
+                      </td>
+                    </tr>
+                
+                    <!-- Cuerpo -->
+                    <tr>
+                      <td style="padding:36px 35px 28px 35px; color:#432818; background-color:#F4F0EC;">
+                        <h2 style="margin:0 0 22px 0; padding-bottom:8px; border-bottom:2px solid #B08968; color:#7F5539; font-size:24px; font-weight:normal;">
+                          %s
+                        </h2>
+                
+                        <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#432818;">
+                          Hola <strong>%s</strong>,
+                        </p>
+                        <p style="margin:0 0 20px 0; font-size:15px; line-height:1.6; color:#432818;">
+                          %s
+                        </p>
+                
+                        <!-- Tabla de detalles clave-valor -->
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#FFFFFF; border:1px solid #E6CCB2; border-radius:10px; margin:20px 0; overflow:hidden;">
+                          %s
+                        </table>
+                
+                        <!-- Nota al pie -->
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#E6CCB2; border-left:4px solid #9C6644; border-radius:6px; margin:20px 0 10px 0;">
+                          <tr>
+                            <td style="padding:12px 16px; font-size:13px; line-height:1.5; color:#432818;">
+                              %s
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                
+                    <!-- Pie -->
+                    <tr>
+                      <td align="center" style="background-color:#EDE0D4; padding:24px 20px; border-top:1px solid #E6CCB2;">
+                        <p style="margin:0 0 6px 0; font-size:12px; color:#7F5539; font-weight:bold;">
+                          Savana Coffee &copy; 2026. Todos los derechos reservados.
+                        </p>
+                        <p style="margin:0; font-size:11px; color:#9C6644; line-height:1.4;">
+                          Correo automático generado por el sistema de gestión.
+                        </p>
+                      </td>
+                    </tr>
+                
+                  </table>
+                </td></tr>
+                </table>
+                </body>
+                </html>
+            """.formatted(
+                tituloEncabezado,
+                tituloEncabezado,
+                tituloEncabezado,
+                nombreDestinatario,
+                mensajePrincipal,
+                filasDetalle.toString(),
+                notaPie
+        );
+    }
+
+    /**
+     * Plantilla 3: Comprobante y Factura Electrónica.
+     * Muestra número fiscal, cliente, cajero, desglose de montos y métodos de pago aplicados.
+     */
+    public String buildFacturaEmailTemplate(FacturaResponseDTO factura) {
+        StringBuilder filasPagos = new StringBuilder();
+        if (factura.getPagos() != null && !factura.getPagos().isEmpty()) {
+            for (PagoResponseDTO pago : factura.getPagos()) {
+                String referencia = (pago.getReferenciaTransaccion() != null && !pago.getReferenciaTransaccion().isBlank())
+                        ? " (Ref: " + pago.getReferenciaTransaccion() + ")"
+                        : "";
+                filasPagos.append("""
+                    <tr>
+                      <td style="padding:6px 0; font-size:13px; color:#7F5539;">
+                        %s%s
+                      </td>
+                      <td align="right" style="padding:6px 0; font-size:13px; color:#432818; font-weight:bold;">
+                        $%,.2f
+                      </td>
+                    </tr>
+                """.formatted(pago.getNombreMetodoPago(), referencia, pago.getMonto()));
+            }
+        }
+
+        String fechaStr = (factura.getFechaEmision() != null)
+                ? factura.getFechaEmision().toString().replace("T", " ")
+                : "Reciente";
+
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Comprobante de Pago %s - Savana Coffee</title>
+                </head>
+                <body style="margin:0; padding:0; background-color:#F4F0EC; font-family:Georgia,'Times New Roman',serif; -webkit-font-smoothing:antialiased;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#F4F0EC; padding:30px 10px;">
+                <tr><td align="center">
+                
+                  <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width:600px; background-color:#FFFFFF; border-radius:16px; overflow:hidden; border:1px solid #E6CCB2;">
+                
+                    <!-- Barra superior -->
+                    <tr>
+                      <td align="center" style="background-color:#EDE0D4; padding:28px 20px; border-bottom:1px solid #E6CCB2;">
+                        <div style="font-size:26px; letter-spacing:4px; color:#7F5539; text-transform:uppercase;">
+                          Savana Coffee
+                        </div>
+                        <div style="font-size:12px; letter-spacing:3px; color:#9C6644; padding-top:6px; text-transform:uppercase;">
+                          Comprobante Electrónico de Pago
+                        </div>
+                      </td>
+                    </tr>
+                
+                    <!-- Cuerpo -->
+                    <tr>
+                      <td style="padding:32px 35px 28px 35px; color:#432818; background-color:#F4F0EC;">
+                
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:20px;">
+                          <tr>
+                            <td>
+                              <span style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#9C6644;">Factura No.</span>
+                              <h2 style="margin:4px 0 0 0; color:#7F5539; font-size:22px;">%s</h2>
+                            </td>
+                            <td align="right" style="font-size:13px; color:#7F5539;">
+                              <strong>Fecha:</strong> %s
+                            </td>
+                          </tr>
+                        </table>
+                
+                        <!-- Datos del cliente y atención -->
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#FFFFFF; border:1px solid #E6CCB2; border-radius:10px; padding:16px; margin-bottom:20px;">
+                          <tr>
+                            <td style="font-size:13px; color:#432818; line-height:1.6;">
+                              <strong>Cliente:</strong> %s<br>
+                              <strong>Identificación:</strong> %s
+                            </td>
+                            <td align="right" style="font-size:13px; color:#432818; line-height:1.6;">
+                              <strong>Atendido por:</strong> %s<br>
+                              <strong>Pedido ID:</strong> #%d
+                            </td>
+                          </tr>
+                        </table>
+                
+                        <!-- Liquidación de Valores -->
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#FFFFFF; border:1px solid #E6CCB2; border-radius:10px; padding:18px; margin-bottom:20px;">
+                          <tr>
+                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Subtotal:</td>
+                            <td align="right" style="padding:6px 0; font-size:14px; color:#432818;">$%,.2f</td>
+                          </tr>
+                          <tr>
+                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Impuesto (8%%):</td>
+                            <td align="right" style="padding:6px 0; font-size:14px; color:#432818;">$%,.2f</td>
+                          </tr>
+                          <tr>
+                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Propina voluntaria:</td>
+                            <td align="right" style="padding:6px 0; font-size:14px; color:#432818;">$%,.2f</td>
+                          </tr>
+                          <tr>
+                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Descuento:</td>
+                            <td align="right" style="padding:6px 0; font-size:14px; color:#9C6644;">-$%,.2f</td>
+                          </tr>
+                          <tr>
+                            <td colspan="2" style="border-top:2px solid #E6CCB2; padding-top:10px; margin-top:6px;"></td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:18px; color:#7F5539; font-weight:bold;">TOTAL PAGADO:</td>
+                            <td align="right" style="font-size:20px; color:#7F5539; font-weight:bold;">$%,.2f</td>
+                          </tr>
+                        </table>
+                
+                        <!-- Desglose de Métodos de Pago -->
+                        <div style="font-size:13px; font-weight:bold; color:#7F5539; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">
+                          Detalle del Pago
+                        </div>
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="background-color:#FFFFFF; border:1px solid #E6CCB2; border-radius:10px; padding:14px 18px; margin-bottom:22px;">
+                          %s
+                        </table>
+                
+                        <p style="margin:0; font-size:13px; line-height:1.5; color:#7F5539; text-align:center;">
+                          ¡Gracias por tu compra en Savana Coffee! Esperamos verte pronto de nuevo.
+                        </p>
+                      </td>
+                    </tr>
+                
+                    <!-- Pie -->
+                    <tr>
+                      <td align="center" style="background-color:#EDE0D4; padding:24px 20px; border-top:1px solid #E6CCB2;">
+                        <p style="margin:0 0 6px 0; font-size:12px; color:#7F5539; font-weight:bold;">
+                          Savana Coffee &copy; 2026. Todos los derechos reservados.
+                        </p>
+                        <p style="margin:0; font-size:11px; color:#9C6644; line-height:1.4;">
+                          Documento generado electrónicamente. Consérvalo como comprobante de pago.
+                        </p>
+                      </td>
+                    </tr>
+                
+                  </table>
+                </td></tr>
+                </table>
+                </body>
+                </html>
+            """.formatted(
+                factura.getNumeroFactura() != null ? factura.getNumeroFactura() : "S/N",
+                factura.getNumeroFactura() != null ? factura.getNumeroFactura() : "S/N",
+                fechaStr,
+                factura.getNombreCliente() != null ? factura.getNombreCliente() : "Consumidor Final",
+                factura.getIdentificacionCliente() != null ? factura.getIdentificacionCliente() : "N/A",
+                factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "Personal en turno",
+                factura.getIdPedido() != null ? factura.getIdPedido() : 0,
+                factura.getSubtotal() != null ? factura.getSubtotal() : 0.0,
+                factura.getImpuesto() != null ? factura.getImpuesto() : 0.0,
+                factura.getPropina() != null ? factura.getPropina() : 0.0,
+                factura.getDescuento() != null ? factura.getDescuento() : 0.0,
+                factura.getTotal() != null ? factura.getTotal() : 0.0,
+                filasPagos.toString()
+        );
+    }
 }

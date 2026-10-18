@@ -18,6 +18,7 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Reserva;
 import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
 import org.sabana.proyectofinal_bd1_back.repository.MesaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.ReservaRepository;
+import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.MesaNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ReservaConflictException;
@@ -31,6 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +56,9 @@ class ReservaServiceImplTest {
 
     @Mock
     private MesaMapper mesaMapper;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private ReservaServiceImpl reservaService;
@@ -117,7 +124,7 @@ class ReservaServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear registra exitosamente una reserva cuando cliente, mesa y horario son válidos")
+    @DisplayName("crear registra exitosamente una reserva cuando cliente, mesa y horario son válidos y envía correo de confirmación")
     void crear_Exitoso() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
         when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
@@ -135,6 +142,14 @@ class ReservaServiceImplTest {
         verify(clienteRepository).findById(1L);
         verify(mesaRepository).findById(2L);
         verify(reservaRepository).save(any(Reserva.class));
+        verify(emailService).sendNotificacionEmail(
+                eq("carlos@example.com"),
+                eq("Confirmación de Reserva"),
+                eq("Carlos Mendoza"),
+                anyString(),
+                anyMap(),
+                anyString()
+        );
     }
 
     @Test
@@ -362,13 +377,45 @@ class ReservaServiceImplTest {
     }
 
     @Test
-    @DisplayName("eliminar borra la reserva cuando existe")
+    @DisplayName("cambiarEstado a CANCELADA actualiza el estado y envía correo de liberación de cupo")
+    void cambiarEstado_Cancelada_EnviaCorreo() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
+        when(reservaRepository.update(reserva)).thenReturn(reserva);
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(reservaMapper.toResponseDTO(reserva)).thenReturn(responseDTO);
+
+        ReservaResponseDTO result = reservaService.cambiarEstado(10L, "CANCELADA");
+
+        assertNotNull(result);
+        assertEquals("CANCELADA", reserva.getEstado());
+        verify(reservaRepository).update(reserva);
+        verify(emailService).sendNotificacionEmail(
+                eq("carlos@example.com"),
+                eq("Cancelación de Reserva"),
+                eq("Carlos Mendoza"),
+                anyString(),
+                anyMap(),
+                anyString()
+        );
+    }
+
+    @Test
+    @DisplayName("eliminar borra la reserva cuando existe y envía notificación de cancelación")
     void eliminar_Exitoso() {
         when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
 
         reservaService.eliminar(10L);
 
         verify(reservaRepository).deleteById(10L);
+        verify(emailService).sendNotificacionEmail(
+                eq("carlos@example.com"),
+                eq("Cancelación de Reserva"),
+                eq("Carlos Mendoza"),
+                anyString(),
+                anyMap(),
+                anyString()
+        );
     }
 
     @Test

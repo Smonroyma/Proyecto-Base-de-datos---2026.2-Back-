@@ -12,6 +12,7 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Reserva;
 import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
 import org.sabana.proyectofinal_bd1_back.repository.MesaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.ReservaRepository;
+import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.MesaNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ReservaConflictException;
@@ -19,7 +20,10 @@ import org.sabana.proyectofinal_bd1_back.util.exceptions.ReservaNotFoundExceptio
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementación de la lógica de negocio para la administración de reservas.
@@ -27,22 +31,27 @@ import java.util.List;
 @Service
 public class ReservaServiceImpl implements ReservaService {
 
+    private static final DateTimeFormatter FECHA_HORA_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     private final ReservaRepository reservaRepository;
     private final ClienteRepository clienteRepository;
     private final MesaRepository mesaRepository;
     private final ReservaMapper reservaMapper;
     private final MesaMapper mesaMapper;
+    private final EmailService emailService;
 
     public ReservaServiceImpl(ReservaRepository reservaRepository,
                               ClienteRepository clienteRepository,
                               MesaRepository mesaRepository,
                               ReservaMapper reservaMapper,
-                              MesaMapper mesaMapper) {
+                              MesaMapper mesaMapper,
+                              EmailService emailService) {
         this.reservaRepository = reservaRepository;
         this.clienteRepository = clienteRepository;
         this.mesaRepository = mesaRepository;
         this.reservaMapper = reservaMapper;
         this.mesaMapper = mesaMapper;
+        this.emailService = emailService;
     }
 
     @Override
@@ -117,6 +126,26 @@ public class ReservaServiceImpl implements ReservaService {
         guardada.setNombreCliente(cliente.getNombre());
         guardada.setNumeroMesa(mesa.getNumero());
 
+        if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
+            Map<String, String> detalles = new LinkedHashMap<>();
+            detalles.put("Reserva No.", "#" + guardada.getIdReserva());
+            detalles.put("Mesa Asignada", "Mesa " + mesa.getNumero());
+            detalles.put("Fecha y Hora", guardada.getFechaHora() != null
+                    ? guardada.getFechaHora().format(FECHA_HORA_FORMATTER)
+                    : requestDTO.getFechaHora().format(FECHA_HORA_FORMATTER));
+            detalles.put("Personas", String.valueOf(guardada.getNumeroPersonas()));
+            detalles.put("Estado", guardada.getEstado());
+
+            emailService.sendNotificacionEmail(
+                    cliente.getEmail(),
+                    "Confirmación de Reserva",
+                    cliente.getNombre(),
+                    "Tu reserva en Savana Coffee ha sido registrada con éxito. A continuación encontrarás los detalles:",
+                    detalles,
+                    "Recuerda presentarte puntualmente. El cupo de la mesa se mantiene reservado hasta 15 minutos después de la hora acordada."
+            );
+        }
+
         return reservaMapper.toResponseDTO(guardada);
     }
 
@@ -167,17 +196,24 @@ public class ReservaServiceImpl implements ReservaService {
                     nuevoEstado));
         }
 
-        reservaExistente.setEstado(nuevoEstado.trim().toUpperCase());
+        String estadoNormalizado = nuevoEstado.trim().toUpperCase();
+        reservaExistente.setEstado(estadoNormalizado);
         Reserva actualizada = reservaRepository.update(reservaExistente);
+
+        if (EstadoReserva.CANCELADA.name().equals(estadoNormalizado)) {
+            notificarCancelacionReserva(actualizada != null ? actualizada : reservaExistente);
+        }
+
         return reservaMapper.toResponseDTO(actualizada);
     }
 
     @Override
     public void eliminar(Long id) {
-        if (reservaRepository.findById(id).isEmpty()) {
-            throw new ReservaNotFoundException(id);
-        }
+        Reserva reservaExistente = reservaRepository.findById(id)
+                .orElseThrow(() -> new ReservaNotFoundException(id));
+
         reservaRepository.deleteById(id);
+        notificarCancelacionReserva(reservaExistente);
     }
 
     @Override
@@ -194,6 +230,35 @@ public class ReservaServiceImpl implements ReservaService {
 
         List<Mesa> mesas = reservaRepository.findMesasDisponibles(fechaHora, numeroPersonas);
         return mesaMapper.toResponseDTOList(mesas);
+    }
+
+    private void notificarCancelacionReserva(Reserva reserva) {
+        if (reserva == null || reserva.getIdCliente() == null) {
+            return;
+        }
+        clienteRepository.findById(reserva.getIdCliente()).ifPresent(cliente -> {
+            if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
+                Map<String, String> detalles = new LinkedHashMap<>();
+                detalles.put("Reserva No.", "#" + reserva.getIdReserva());
+                detalles.put("Mesa Liberada", reserva.getNumeroMesa() != null
+                        ? "Mesa " + reserva.getNumeroMesa()
+                        : "ID Mesa " + reserva.getIdMesa());
+                detalles.put("Fecha y Hora Original", reserva.getFechaHora() != null
+                        ? reserva.getFechaHora().format(FECHA_HORA_FORMATTER)
+                        : "N/A");
+                detalles.put("Personas", String.valueOf(reserva.getNumeroPersonas()));
+                detalles.put("Estado", EstadoReserva.CANCELADA.name());
+
+                emailService.sendNotificacionEmail(
+                        cliente.getEmail(),
+                        "Cancelación de Reserva",
+                        cliente.getNombre(),
+                        "Te confirmamos que tu reserva en Savana Coffee ha sido cancelada y el cupo de la mesa ha sido liberado.",
+                        detalles,
+                        "Esperamos poder atenderte en una próxima ocasión. Puedes programar una nueva reserva cuando lo desees."
+                );
+            }
+        });
     }
 
 }

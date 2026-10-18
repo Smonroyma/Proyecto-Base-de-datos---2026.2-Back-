@@ -20,6 +20,7 @@ import org.sabana.proyectofinal_bd1_back.repository.MetodoPagoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PagoFacturaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PedidoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
+import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.FacturaNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.MetodoPagoNotFoundException;
@@ -51,6 +52,7 @@ public class FacturaServiceImpl implements FacturaService {
     private final UsuarioRepository usuarioRepository;
     private final MesaRepository mesaRepository;
     private final FacturaMapper facturaMapper;
+    private final EmailService emailService;
 
     public FacturaServiceImpl(FacturaRepository facturaRepository,
                               PagoFacturaRepository pagoFacturaRepository,
@@ -59,7 +61,8 @@ public class FacturaServiceImpl implements FacturaService {
                               ClienteRepository clienteRepository,
                               UsuarioRepository usuarioRepository,
                               MesaRepository mesaRepository,
-                              FacturaMapper facturaMapper) {
+                              FacturaMapper facturaMapper,
+                              EmailService emailService) {
         this.facturaRepository = facturaRepository;
         this.pagoFacturaRepository = pagoFacturaRepository;
         this.metodoPagoRepository = metodoPagoRepository;
@@ -68,6 +71,7 @@ public class FacturaServiceImpl implements FacturaService {
         this.usuarioRepository = usuarioRepository;
         this.mesaRepository = mesaRepository;
         this.facturaMapper = facturaMapper;
+        this.emailService = emailService;
     }
 
     @Override
@@ -194,7 +198,13 @@ public class FacturaServiceImpl implements FacturaService {
             }
         }
 
-        return facturaMapper.toResponseDTO(facturaGuardada);
+        FacturaResponseDTO responseDTO = facturaMapper.toResponseDTO(facturaGuardada);
+
+        if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
+            emailService.sendFacturaEmail(cliente.getEmail(), responseDTO);
+        }
+
+        return responseDTO;
     }
 
     @Override

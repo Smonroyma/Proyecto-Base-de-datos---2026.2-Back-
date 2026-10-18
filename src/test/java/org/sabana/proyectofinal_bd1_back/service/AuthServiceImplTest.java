@@ -120,7 +120,7 @@ class AuthServiceImplTest {
         assertEquals("Bearer", result.getTipoToken());
         assertFalse(result.getRequiere2FA());
         verify(jwtTokenProvider).generateToken(usuarioSin2FA);
-        verify(emailService, never()).enviarCorreoOtp(anyString(), anyString(), anyString(), anyInt());
+        verify(emailService, never()).sendOtpEmail(anyString(), anyString(), anyString(), anyInt());
     }
 
     @Test
@@ -138,7 +138,7 @@ class AuthServiceImplTest {
         assertNull(result.getToken());
         assertTrue(result.getRequiere2FA());
         verify(usuarioRepository).guardarCodigoOTP(eq(2L), anyString(), any(LocalDateTime.class));
-        verify(emailService).enviarCorreoOtp(eq("mariana@savanacoffee.com"), eq("Mariana Barista"), anyString(), eq(5));
+        verify(emailService).sendOtpEmail(eq("mariana@savanacoffee.com"), eq("Mariana Barista"), anyString(), eq(5));
         verify(jwtTokenProvider, never()).generateToken(any());
     }
 

@@ -12,19 +12,21 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
+import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserAlreadyExistsException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +42,9 @@ class UsuarioServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private UsuarioServiceImpl usuarioService;
@@ -117,7 +122,7 @@ class UsuarioServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear registra usuario con contraseña encriptada por BCrypt")
+    @DisplayName("crear registra usuario con contraseña encriptada por BCrypt y envía notificación de bienvenida")
     void crear_Exitoso() {
         when(usuarioRepository.existsByEmail(requestDTO.getEmail())).thenReturn(false);
         when(usuarioMapper.toEntity(requestDTO)).thenReturn(usuario);
@@ -131,6 +136,14 @@ class UsuarioServiceImplTest {
         assertEquals("sofia@savanacoffee.com", result.getEmail());
         verify(passwordEncoder).encode("ClaveSegura2026");
         verify(usuarioRepository).save(any(Usuario.class));
+        verify(emailService).sendNotificacionEmail(
+                eq("sofia@savanacoffee.com"),
+                eq("Bienvenido a Savana Coffee"),
+                eq("Sofía Monroy"),
+                anyString(),
+                anyMap(),
+                anyString()
+        );
     }
 
     @Test
@@ -140,6 +153,7 @@ class UsuarioServiceImplTest {
 
         assertThrows(UserAlreadyExistsException.class, () -> usuarioService.crear(requestDTO));
         verify(usuarioRepository, never()).save(any(Usuario.class));
+        verify(emailService, never()).sendNotificacionEmail(anyString(), anyString(), anyString(), anyString(), anyMap(), anyString());
     }
 
     @Test
@@ -149,6 +163,7 @@ class UsuarioServiceImplTest {
 
         assertThrows(IllegalArgumentException.class, () -> usuarioService.crear(requestDTO));
         verify(usuarioRepository, never()).save(any(Usuario.class));
+        verify(emailService, never()).sendNotificacionEmail(anyString(), anyString(), anyString(), anyString(), anyMap(), anyString());
     }
 
     @Test
@@ -177,13 +192,21 @@ class UsuarioServiceImplTest {
     }
 
     @Test
-    @DisplayName("eliminar borra el usuario cuando existe")
+    @DisplayName("eliminar borra el usuario cuando existe y envía notificación de desactivación de cuenta")
     void eliminar_Exitoso() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
 
         usuarioService.eliminar(1L);
 
         verify(usuarioRepository).deleteById(1L);
+        verify(emailService).sendNotificacionEmail(
+                eq("sofia@savanacoffee.com"),
+                eq("Desactivación de Cuenta"),
+                eq("Sofía Monroy"),
+                anyString(),
+                anyMap(),
+                anyString()
+        );
     }
 
     @Test
@@ -193,6 +216,7 @@ class UsuarioServiceImplTest {
 
         assertThrows(UserNotFoundException.class, () -> usuarioService.eliminar(99L));
         verify(usuarioRepository, never()).deleteById(99L);
+        verify(emailService, never()).sendNotificacionEmail(anyString(), anyString(), anyString(), anyString(), anyMap(), anyString());
     }
 
 }

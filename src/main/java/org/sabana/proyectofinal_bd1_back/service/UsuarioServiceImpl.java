@@ -6,13 +6,17 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.RolUsuario;
 import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
+import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserAlreadyExistsException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementación de la lógica de negocio para administración de usuarios.
@@ -20,17 +24,22 @@ import java.util.List;
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public UsuarioServiceImpl(
             UsuarioRepository usuarioRepository,
             UsuarioMapper usuarioMapper,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailService emailService) {
         this.usuarioRepository = usuarioRepository;
         this.usuarioMapper = usuarioMapper;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     @Override
@@ -73,6 +82,25 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setFechaRegistro(LocalDateTime.now());
 
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
+
+        if (usuarioGuardado != null && usuarioGuardado.getEmail() != null && !usuarioGuardado.getEmail().isBlank()) {
+            Map<String, String> detalles = new LinkedHashMap<>();
+            detalles.put("Nombre", usuarioGuardado.getNombre());
+            detalles.put("Correo Electrónico", usuarioGuardado.getEmail());
+            detalles.put("Rol Asignado", usuarioGuardado.getRol());
+            detalles.put("Verificación 2FA", Boolean.TRUE.equals(usuarioGuardado.getDosFactoresHabilitado()) ? "Habilitada" : "Deshabilitada");
+            detalles.put("Estado de Cuenta", "ACTIVA");
+
+            emailService.sendNotificacionEmail(
+                    usuarioGuardado.getEmail(),
+                    "Bienvenido a Savana Coffee",
+                    usuarioGuardado.getNombre(),
+                    "Tu cuenta corporativa ha sido registrada exitosamente en la plataforma de gestión Savana Data Coffee.",
+                    detalles,
+                    "Recuerda mantener tus credenciales seguras y no compartir tu acceso con terceros."
+            );
+        }
+
         return usuarioMapper.toResponseDTO(usuarioGuardado);
     }
 
@@ -102,15 +130,41 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
 
         Usuario actualizado = usuarioRepository.update(existente);
+
+        if (actualizado != null && !Boolean.TRUE.equals(actualizado.getActivo())) {
+            enviarNotificacionDesactivacion(actualizado);
+        }
+
         return usuarioMapper.toResponseDTO(actualizado);
     }
 
     @Override
     public void eliminar(Long id) {
-        if (usuarioRepository.findById(id).isEmpty()) {
-            throw new UserNotFoundException(id);
-        }
+        Usuario existente = usuarioRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+
         usuarioRepository.deleteById(id);
+        enviarNotificacionDesactivacion(existente);
+    }
+
+    private void enviarNotificacionDesactivacion(Usuario usuario) {
+        if (usuario.getEmail() != null && !usuario.getEmail().isBlank()) {
+            Map<String, String> detalles = new LinkedHashMap<>();
+            detalles.put("Usuario", usuario.getNombre());
+            detalles.put("Correo Electrónico", usuario.getEmail());
+            detalles.put("Rol", usuario.getRol());
+            detalles.put("Estado de Cuenta", "DESACTIVADA");
+            detalles.put("Fecha de Operación", LocalDateTime.now().format(DATE_TIME_FORMATTER));
+
+            emailService.sendNotificacionEmail(
+                    usuario.getEmail(),
+                    "Desactivación de Cuenta",
+                    usuario.getNombre(),
+                    "Te informamos que tu cuenta de acceso en el sistema Savana Data Coffee ha sido desactivada por la administración.",
+                    detalles,
+                    "Si consideras que se trata de un error, por favor comunícate con el administrador del sistema."
+            );
+        }
     }
 
     private void validarRol(String rol) {
