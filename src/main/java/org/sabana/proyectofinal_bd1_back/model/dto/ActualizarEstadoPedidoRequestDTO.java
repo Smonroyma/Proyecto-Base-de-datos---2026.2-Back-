@@ -1,5 +1,6 @@
 package org.sabana.proyectofinal_bd1_back.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ import lombok.NoArgsConstructor;
 public class ActualizarEstadoPedidoRequestDTO {
 
     @NotBlank(message = "El nuevo estado del pedido es obligatorio")
+    @JsonAlias({"estado", "nuevo_estado"})
     @Schema(description = "Nuevo estado a asignar al pedido", example = "EN_PREPARACION", allowableValues = {"PENDIENTE", "EN_PREPARACION", "ENTREGADO", "CANCELADO", "PAGADO"})
     private String nuevoEstado;
 

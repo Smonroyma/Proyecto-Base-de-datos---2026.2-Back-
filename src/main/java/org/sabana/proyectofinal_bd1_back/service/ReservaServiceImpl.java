@@ -18,6 +18,7 @@ import org.sabana.proyectofinal_bd1_back.util.exceptions.MesaNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ReservaConflictException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ReservaNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +28,8 @@ import java.util.Map;
 
 /**
  * Implementación de la lógica de negocio para la administración de reservas.
+ * Regla crítica: Los clientes se guardan permanentemente al reservar por primera vez
+ * y se reutilizan por su correo único. Jamás se elimina automáticamente a un cliente.
  */
 @Service
 public class ReservaServiceImpl implements ReservaService {
@@ -55,30 +58,36 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
-    public List<ReservaResponseDTO> obtenerReservas(Long clienteId, Long mesaId, String estado) {
+    public List<ReservaResponseDTO> obtenerReservas(Long clienteId, String correo, Integer numeroMesa, String estado) {
         List<Reserva> reservas;
 
-        if (clienteId != null) {
+        if (correo != null && !correo.isBlank()) {
+            reservas = reservaRepository.findByClienteCorreo(correo.trim());
+        } else if (clienteId != null) {
             reservas = reservaRepository.findByCliente(clienteId);
-        } else if (mesaId != null) {
-            reservas = reservaRepository.findByMesa(mesaId);
+        } else if (numeroMesa != null) {
+            reservas = reservaRepository.findByMesa(numeroMesa);
         } else if (estado != null && !estado.isBlank()) {
-            reservas = reservaRepository.findByEstado(estado);
+            reservas = reservaRepository.findByEstado(estado.trim());
         } else {
             reservas = reservaRepository.findAll();
         }
 
-        if (clienteId != null && estado != null && !estado.isBlank()) {
+        if (estado != null && !estado.isBlank() && (correo != null || clienteId != null || numeroMesa != null)) {
             reservas = reservas.stream()
-                    .filter(r -> r.getEstado() != null && r.getEstado().equalsIgnoreCase(estado))
-                    .toList();
-        }
-        if (mesaId != null && estado != null && !estado.isBlank()) {
-            reservas = reservas.stream()
-                    .filter(r -> r.getEstado() != null && r.getEstado().equalsIgnoreCase(estado))
+                    .filter(r -> r.getEstado() != null && r.getEstado().equalsIgnoreCase(estado.trim()))
                     .toList();
         }
 
+        return reservaMapper.toResponseDTOList(reservas);
+    }
+
+    @Override
+    public List<ReservaResponseDTO> buscarPorCorreoCliente(String correo) {
+        if (correo == null || correo.isBlank()) {
+            throw new IllegalArgumentException("El correo electrónico del cliente es obligatorio para consultar sus reservas");
+        }
+        List<Reserva> reservas = reservaRepository.findByClienteCorreo(correo.trim());
         return reservaMapper.toResponseDTOList(reservas);
     }
 
@@ -90,56 +99,67 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
+    @Transactional
     public ReservaResponseDTO crear(ReservaRequestDTO requestDTO) {
-        Cliente cliente = clienteRepository.findById(requestDTO.getIdCliente())
-                .orElseThrow(() -> new ClienteNotFoundException(requestDTO.getIdCliente()));
+        LocalDateTime fechaHora = requestDTO.resolveFechaHora();
+        if (fechaHora == null) {
+            throw new IllegalArgumentException("La fecha y hora de la reserva son obligatorias");
+        }
+        if (fechaHora.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("La fecha y hora de la reserva debe ser futura");
+        }
 
-        Mesa mesa = mesaRepository.findById(requestDTO.getIdMesa())
-                .orElseThrow(() -> new MesaNotFoundException(requestDTO.getIdMesa()));
+        Cliente cliente = resolverOPersistirCliente(requestDTO);
+
+        Mesa mesa = mesaRepository.findByNumeroMesa(requestDTO.getNumeroMesa())
+                .orElseThrow(() -> new MesaNotFoundException(requestDTO.getNumeroMesa()));
 
         if (mesa.getCapacidad() < requestDTO.getNumeroPersonas()) {
             throw new ReservaConflictException(String.format(
                     "La mesa número %d tiene una capacidad máxima de %d personas, insuficiente para %d personas.",
-                    mesa.getNumero(), mesa.getCapacidad(), requestDTO.getNumeroPersonas()));
+                    mesa.getNumeroMesa(), mesa.getCapacidad(), requestDTO.getNumeroPersonas()));
         }
 
         if ("EN_MANTENIMIENTO".equalsIgnoreCase(mesa.getEstado())) {
             throw new ReservaConflictException(String.format(
                     "La mesa número %d se encuentra en mantenimiento y no puede ser reservada.",
-                    mesa.getNumero()));
+                    mesa.getNumeroMesa()));
         }
 
-        if (reservaRepository.existsOverlappingReserva(requestDTO.getIdMesa(), requestDTO.getFechaHora(), null)) {
+        if (reservaRepository.existsOverlappingReserva(requestDTO.getNumeroMesa(), fechaHora, null)) {
             throw new ReservaConflictException(String.format(
                     "La mesa número %d ya cuenta con una reserva activa en el intervalo de horario solicitado.",
-                    mesa.getNumero()));
+                    mesa.getNumeroMesa()));
         }
 
         Reserva reserva = reservaMapper.toEntity(requestDTO);
+        reserva.setIdCliente(cliente.getIdCliente());
+        reserva.setNumeroMesa(mesa.getNumeroMesa());
+        reserva.setFecha(fechaHora.toLocalDate());
+        reserva.setHora(fechaHora.toLocalTime());
         if (reserva.getEstado() == null || reserva.getEstado().isBlank()) {
             reserva.setEstado(EstadoReserva.PENDIENTE.name());
         } else {
-            reserva.setEstado(reserva.getEstado().toUpperCase());
+            reserva.setEstado(reserva.getEstado().toUpperCase().trim());
         }
 
         Reserva guardada = reservaRepository.save(reserva);
-        guardada.setNombreCliente(cliente.getNombre());
-        guardada.setNumeroMesa(mesa.getNumero());
+        guardada.setNombreCliente(cliente.getNombreCompleto());
+        guardada.setCorreoCliente(cliente.getCorreo());
+        guardada.setNumeroMesa(mesa.getNumeroMesa());
 
-        if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
+        if (cliente.getCorreo() != null && !cliente.getCorreo().isBlank()) {
             Map<String, String> detalles = new LinkedHashMap<>();
             detalles.put("Reserva No.", "#" + guardada.getIdReserva());
-            detalles.put("Mesa Asignada", "Mesa " + mesa.getNumero());
-            detalles.put("Fecha y Hora", guardada.getFechaHora() != null
-                    ? guardada.getFechaHora().format(FECHA_HORA_FORMATTER)
-                    : requestDTO.getFechaHora().format(FECHA_HORA_FORMATTER));
+            detalles.put("Mesa Asignada", "Mesa " + mesa.getNumeroMesa());
+            detalles.put("Fecha y Hora", fechaHora.format(FECHA_HORA_FORMATTER));
             detalles.put("Personas", String.valueOf(guardada.getNumeroPersonas()));
             detalles.put("Estado", guardada.getEstado());
 
             emailService.sendNotificacionEmail(
-                    cliente.getEmail(),
+                    cliente.getCorreo(),
                     "Confirmación de Reserva",
-                    cliente.getNombre(),
+                    cliente.getNombreCompleto(),
                     "Tu reserva en Savana Coffee ha sido registrada con éxito. A continuación encontrarás los detalles:",
                     detalles,
                     "Recuerda presentarte puntualmente. El cupo de la mesa se mantiene reservado hasta 15 minutos después de la hora acordada."
@@ -150,42 +170,53 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
+    @Transactional
     public ReservaResponseDTO actualizar(Long id, ReservaRequestDTO requestDTO) {
         Reserva reservaExistente = reservaRepository.findById(id)
                 .orElseThrow(() -> new ReservaNotFoundException(id));
 
-        Cliente cliente = clienteRepository.findById(requestDTO.getIdCliente())
-                .orElseThrow(() -> new ClienteNotFoundException(requestDTO.getIdCliente()));
+        LocalDateTime fechaHora = requestDTO.resolveFechaHora();
+        if (fechaHora == null) {
+            throw new IllegalArgumentException("La fecha y hora de la reserva son obligatorias");
+        }
 
-        Mesa mesa = mesaRepository.findById(requestDTO.getIdMesa())
-                .orElseThrow(() -> new MesaNotFoundException(requestDTO.getIdMesa()));
+        Cliente cliente = resolverOPersistirCliente(requestDTO);
+
+        Mesa mesa = mesaRepository.findByNumeroMesa(requestDTO.getNumeroMesa())
+                .orElseThrow(() -> new MesaNotFoundException(requestDTO.getNumeroMesa()));
 
         if (mesa.getCapacidad() < requestDTO.getNumeroPersonas()) {
             throw new ReservaConflictException(String.format(
                     "La mesa número %d tiene una capacidad máxima de %d personas, insuficiente para %d personas.",
-                    mesa.getNumero(), mesa.getCapacidad(), requestDTO.getNumeroPersonas()));
+                    mesa.getNumeroMesa(), mesa.getCapacidad(), requestDTO.getNumeroPersonas()));
         }
 
-        if (reservaRepository.existsOverlappingReserva(requestDTO.getIdMesa(), requestDTO.getFechaHora(), id)) {
+        if (reservaRepository.existsOverlappingReserva(requestDTO.getNumeroMesa(), fechaHora, id)) {
             throw new ReservaConflictException(String.format(
                     "La mesa número %d ya cuenta con una reserva activa en el intervalo de horario solicitado.",
-                    mesa.getNumero()));
+                    mesa.getNumeroMesa()));
         }
 
         reservaMapper.updateEntityFromDTO(requestDTO, reservaExistente);
         reservaExistente.setIdReserva(id);
+        reservaExistente.setIdCliente(cliente.getIdCliente());
+        reservaExistente.setNumeroMesa(mesa.getNumeroMesa());
+        reservaExistente.setFecha(fechaHora.toLocalDate());
+        reservaExistente.setHora(fechaHora.toLocalTime());
         if (reservaExistente.getEstado() != null) {
-            reservaExistente.setEstado(reservaExistente.getEstado().toUpperCase());
+            reservaExistente.setEstado(reservaExistente.getEstado().toUpperCase().trim());
         }
 
         Reserva actualizada = reservaRepository.update(reservaExistente);
-        actualizada.setNombreCliente(cliente.getNombre());
-        actualizada.setNumeroMesa(mesa.getNumero());
+        actualizada.setNombreCliente(cliente.getNombreCompleto());
+        actualizada.setCorreoCliente(cliente.getCorreo());
+        actualizada.setNumeroMesa(mesa.getNumeroMesa());
 
         return reservaMapper.toResponseDTO(actualizada);
     }
 
     @Override
+    @Transactional
     public ReservaResponseDTO cambiarEstado(Long id, String nuevoEstado) {
         Reserva reservaExistente = reservaRepository.findById(id)
                 .orElseThrow(() -> new ReservaNotFoundException(id));
@@ -208,6 +239,7 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         Reserva reservaExistente = reservaRepository.findById(id)
                 .orElseThrow(() -> new ReservaNotFoundException(id));
@@ -232,17 +264,45 @@ public class ReservaServiceImpl implements ReservaService {
         return mesaMapper.toResponseDTOList(mesas);
     }
 
+    private Cliente resolverOPersistirCliente(ReservaRequestDTO requestDTO) {
+        if (requestDTO.getCorreo() != null && !requestDTO.getCorreo().isBlank()) {
+            String correoLimpio = requestDTO.getCorreo().trim();
+            return clienteRepository.findByCorreo(correoLimpio)
+                    .orElseGet(() -> {
+                        if (requestDTO.getNombres() == null || requestDTO.getNombres().isBlank()) {
+                            throw new IllegalArgumentException("Los nombres del cliente son obligatorios para registrar un nuevo cliente en la reserva");
+                        }
+                        if (requestDTO.getTelefono() == null || requestDTO.getTelefono().isBlank()) {
+                            throw new IllegalArgumentException("El teléfono del cliente es obligatorio para registrar un nuevo cliente en la reserva");
+                        }
+                        Cliente nuevo = Cliente.builder()
+                                .nombres(requestDTO.getNombres().trim())
+                                .apellidos(requestDTO.getApellidos() != null ? requestDTO.getApellidos().trim() : "")
+                                .correo(correoLimpio)
+                                .telefono(requestDTO.getTelefono().trim())
+                                .fechaRegistro(LocalDateTime.now())
+                                .build();
+                        return clienteRepository.save(nuevo);
+                    });
+        }
+
+        if (requestDTO.getIdCliente() != null) {
+            return clienteRepository.findById(requestDTO.getIdCliente())
+                    .orElseThrow(() -> new ClienteNotFoundException(requestDTO.getIdCliente()));
+        }
+
+        throw new IllegalArgumentException("Debe especificar el correo y datos del cliente o un idCliente válido");
+    }
+
     private void notificarCancelacionReserva(Reserva reserva) {
         if (reserva == null || reserva.getIdCliente() == null) {
             return;
         }
         clienteRepository.findById(reserva.getIdCliente()).ifPresent(cliente -> {
-            if (cliente.getEmail() != null && !cliente.getEmail().isBlank()) {
+            if (cliente.getCorreo() != null && !cliente.getCorreo().isBlank()) {
                 Map<String, String> detalles = new LinkedHashMap<>();
                 detalles.put("Reserva No.", "#" + reserva.getIdReserva());
-                detalles.put("Mesa Liberada", reserva.getNumeroMesa() != null
-                        ? "Mesa " + reserva.getNumeroMesa()
-                        : "ID Mesa " + reserva.getIdMesa());
+                detalles.put("Mesa Liberada", "Mesa " + reserva.getNumeroMesa());
                 detalles.put("Fecha y Hora Original", reserva.getFechaHora() != null
                         ? reserva.getFechaHora().format(FECHA_HORA_FORMATTER)
                         : "N/A");
@@ -250,9 +310,9 @@ public class ReservaServiceImpl implements ReservaService {
                 detalles.put("Estado", EstadoReserva.CANCELADA.name());
 
                 emailService.sendNotificacionEmail(
-                        cliente.getEmail(),
+                        cliente.getCorreo(),
                         "Cancelación de Reserva",
-                        cliente.getNombre(),
+                        cliente.getNombreCompleto(),
                         "Te confirmamos que tu reserva en Savana Coffee ha sido cancelada y el cupo de la mesa ha sido liberado.",
                         detalles,
                         "Esperamos poder atenderte en una próxima ocasión. Puedes programar una nueva reserva cuando lo desees."

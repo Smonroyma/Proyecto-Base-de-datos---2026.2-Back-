@@ -10,16 +10,16 @@ import java.util.List;
  */
 public interface MesaService {
 
-    MesaResponseDTO buscarPorId(Long id);
+    MesaResponseDTO buscarPorNumero(Integer numeroMesa);
 
     List<MesaResponseDTO> obtenerMesas(String estado);
 
-    MesaResponseDTO buscarPorNumero(Integer numero);
-
     MesaResponseDTO crear(MesaRequestDTO requestDTO);
 
-    MesaResponseDTO actualizar(Long id, MesaRequestDTO requestDTO);
+    MesaResponseDTO actualizar(Integer numeroMesa, MesaRequestDTO requestDTO);
 
-    void eliminar(Long id);
+    MesaResponseDTO actualizarEstado(Integer numeroMesa, String nuevoEstado);
+
+    void eliminar(Integer numeroMesa);
 
 }

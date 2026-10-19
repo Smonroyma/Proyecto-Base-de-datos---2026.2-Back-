@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Entidad de dominio PagoFactura.
- * Mapea directamente la tabla de base de datos 'pago_factura' sin anotaciones JPA.
+ * Entidad de dominio PagoFactura (mapea la tabla 'pago' del modelo V2).
+ * Sin anotaciones JPA.
  */
 @Data
 @Builder
@@ -18,11 +18,12 @@ import java.time.LocalDateTime;
 public class PagoFactura {
 
     private Long idPago;
-    private Long idFactura;
-    private Long idMetodoPago;
+    private String numFactura;
+    private String tipoMetodoPago;
     private String nombreMetodoPago;
-    private Double monto;
+    private LocalDateTime fecha;
+    private String estado;
+    private Double total;
     private String referenciaTransaccion;
-    private LocalDateTime fechaHora;
 
 }

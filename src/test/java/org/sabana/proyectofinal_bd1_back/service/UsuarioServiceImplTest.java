@@ -10,14 +10,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
+import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
 import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserAlreadyExistsException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,53 +51,68 @@ class UsuarioServiceImplTest {
     @InjectMocks
     private UsuarioServiceImpl usuarioService;
 
-    private Usuario usuario;
+    private Administrador admin;
+    private Empleado empleado;
     private UsuarioRequestDTO requestDTO;
     private UsuarioResponseDTO responseDTO;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder()
+        admin = Administrador.builder()
                 .idUsuario(1L)
-                .nombre("Sofía Monroy")
-                .email("sofia@savanacoffee.com")
-                .passwordHash("encodedHash")
+                .nombres("Sofía")
+                .apellidos("Monroy")
+                .correo("sofia@savanacoffee.com")
+                .contrasena("encodedHash")
                 .rol("ADMINISTRADOR")
-                .activo(true)
-                .dosFactoresHabilitado(true)
-                .fechaRegistro(LocalDateTime.now())
+                .dosFacHab(true)
+                .fechaInicio(LocalDate.now())
+                .build();
+
+        empleado = Empleado.builder()
+                .idUsuario(2L)
+                .nombres("Juan")
+                .apellidos("Mesero")
+                .correo("juan@savanacoffee.com")
+                .contrasena("encodedHash")
+                .rol("EMPLEADO")
+                .estado("ACTIVO")
+                .dosFacHab(false)
+                .fechaInicio(LocalDate.now())
                 .build();
 
         requestDTO = UsuarioRequestDTO.builder()
-                .nombre("Sofía Monroy")
-                .email("sofia@savanacoffee.com")
-                .password("ClaveSegura2026")
+                .nombres("Sofía")
+                .apellidos("Monroy")
+                .correo("sofia@savanacoffee.com")
+                .contrasena("ClaveSegura2026")
                 .rol("ADMINISTRADOR")
-                .dosFactoresHabilitado(true)
+                .dosFacHab(true)
                 .build();
 
         responseDTO = UsuarioResponseDTO.builder()
                 .idUsuario(1L)
-                .nombre("Sofía Monroy")
-                .email("sofia@savanacoffee.com")
+                .nombres("Sofía")
+                .apellidos("Monroy")
+                .correo("sofia@savanacoffee.com")
                 .rol("ADMINISTRADOR")
-                .activo(true)
-                .dosFactoresHabilitado(true)
-                .fechaRegistro(LocalDateTime.now())
+                .estado("ACTIVO")
+                .dosFacHab(true)
+                .fechaInicio(LocalDate.now())
                 .build();
     }
 
     @Test
     @DisplayName("buscarPorId retorna UsuarioResponseDTO cuando el usuario existe")
     void buscarPorId_Exitoso() {
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(usuarioMapper.toResponseDTO(usuario)).thenReturn(responseDTO);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(usuarioMapper.toResponseDTO(admin)).thenReturn(responseDTO);
 
         UsuarioResponseDTO result = usuarioService.buscarPorId(1L);
 
         assertNotNull(result);
         assertEquals(1L, result.getIdUsuario());
-        assertEquals("sofia@savanacoffee.com", result.getEmail());
+        assertEquals("sofia@savanacoffee.com", result.getCorreo());
         verify(usuarioRepository).findById(1L);
     }
 
@@ -109,33 +126,33 @@ class UsuarioServiceImplTest {
     }
 
     @Test
-    @DisplayName("buscarPorEmail retorna UsuarioResponseDTO cuando el usuario existe")
-    void buscarPorEmail_Exitoso() {
-        when(usuarioRepository.findByEmail("sofia@savanacoffee.com")).thenReturn(Optional.of(usuario));
-        when(usuarioMapper.toResponseDTO(usuario)).thenReturn(responseDTO);
+    @DisplayName("buscarPorCorreo retorna UsuarioResponseDTO cuando el usuario existe")
+    void buscarPorCorreo_Exitoso() {
+        when(usuarioRepository.findByCorreo("sofia@savanacoffee.com")).thenReturn(Optional.of(admin));
+        when(usuarioMapper.toResponseDTO(admin)).thenReturn(responseDTO);
 
-        UsuarioResponseDTO result = usuarioService.buscarPorEmail("sofia@savanacoffee.com");
+        UsuarioResponseDTO result = usuarioService.buscarPorCorreo("sofia@savanacoffee.com");
 
         assertNotNull(result);
-        assertEquals("sofia@savanacoffee.com", result.getEmail());
-        verify(usuarioRepository).findByEmail("sofia@savanacoffee.com");
+        assertEquals("sofia@savanacoffee.com", result.getCorreo());
+        verify(usuarioRepository).findByCorreo("sofia@savanacoffee.com");
     }
 
     @Test
-    @DisplayName("crear registra usuario con contraseña encriptada por BCrypt y envía notificación de bienvenida")
+    @DisplayName("crear registra miembro de Staff con contraseña encriptada por BCrypt y envía notificación de bienvenida")
     void crear_Exitoso() {
-        when(usuarioRepository.existsByEmail(requestDTO.getEmail())).thenReturn(false);
-        when(usuarioMapper.toEntity(requestDTO)).thenReturn(usuario);
-        when(passwordEncoder.encode(requestDTO.getPassword())).thenReturn("encodedHash");
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
-        when(usuarioMapper.toResponseDTO(usuario)).thenReturn(responseDTO);
+        when(usuarioRepository.existsByCorreo(requestDTO.getCorreo())).thenReturn(false);
+        when(usuarioMapper.toEntity(requestDTO)).thenReturn(admin);
+        when(passwordEncoder.encode(requestDTO.getContrasena())).thenReturn("encodedHash");
+        when(usuarioRepository.save(any(Staff.class))).thenReturn(admin);
+        when(usuarioMapper.toResponseDTO(admin)).thenReturn(responseDTO);
 
         UsuarioResponseDTO result = usuarioService.crear(requestDTO);
 
         assertNotNull(result);
-        assertEquals("sofia@savanacoffee.com", result.getEmail());
+        assertEquals("sofia@savanacoffee.com", result.getCorreo());
         verify(passwordEncoder).encode("ClaveSegura2026");
-        verify(usuarioRepository).save(any(Usuario.class));
+        verify(usuarioRepository).save(any(Staff.class));
         verify(emailService).sendNotificacionEmail(
                 eq("sofia@savanacoffee.com"),
                 eq("Bienvenido a Savana Coffee"),
@@ -148,53 +165,74 @@ class UsuarioServiceImplTest {
 
     @Test
     @DisplayName("crear lanza UserAlreadyExistsException cuando el correo ya está registrado")
-    void crear_EmailDuplicado_LanzaUserAlreadyExistsException() {
-        when(usuarioRepository.existsByEmail(requestDTO.getEmail())).thenReturn(true);
+    void crear_CorreoDuplicado_LanzaUserAlreadyExistsException() {
+        when(usuarioRepository.existsByCorreo(requestDTO.getCorreo())).thenReturn(true);
 
         assertThrows(UserAlreadyExistsException.class, () -> usuarioService.crear(requestDTO));
-        verify(usuarioRepository, never()).save(any(Usuario.class));
+        verify(usuarioRepository, never()).save(any(Staff.class));
         verify(emailService, never()).sendNotificacionEmail(anyString(), anyString(), anyString(), anyString(), anyMap(), anyString());
     }
 
     @Test
     @DisplayName("crear lanza IllegalArgumentException cuando el rol no es válido")
     void crear_RolInvalido_LanzaIllegalArgumentException() {
-        requestDTO.setRol("SUPER_USUARIO_INVALIDO");
+        requestDTO.setRol("BARISTA_OBSOLETO");
 
         assertThrows(IllegalArgumentException.class, () -> usuarioService.crear(requestDTO));
-        verify(usuarioRepository, never()).save(any(Usuario.class));
-        verify(emailService, never()).sendNotificacionEmail(anyString(), anyString(), anyString(), anyString(), anyMap(), anyString());
+        verify(usuarioRepository, never()).save(any(Staff.class));
     }
 
     @Test
-    @DisplayName("actualizar modifica datos del usuario correctamente")
+    @DisplayName("actualizar modifica datos del miembro de Staff correctamente")
     void actualizar_Exitoso() {
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.existsByEmailAndNotId(requestDTO.getEmail(), 1L)).thenReturn(false);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(usuarioRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), 1L)).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("newEncodedHash");
-        when(usuarioRepository.update(usuario)).thenReturn(usuario);
-        when(usuarioMapper.toResponseDTO(usuario)).thenReturn(responseDTO);
+        when(usuarioRepository.update(any(Staff.class))).thenReturn(admin);
+        when(usuarioMapper.toResponseDTO(admin)).thenReturn(responseDTO);
 
         UsuarioResponseDTO result = usuarioService.actualizar(1L, requestDTO);
 
         assertNotNull(result);
-        verify(usuarioRepository).update(usuario);
+        verify(usuarioRepository).update(any(Staff.class));
     }
 
     @Test
     @DisplayName("actualizar lanza UserAlreadyExistsException si otro usuario ya usa el correo")
-    void actualizar_EmailDuplicado_LanzaUserAlreadyExistsException() {
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.existsByEmailAndNotId(requestDTO.getEmail(), 1L)).thenReturn(true);
+    void actualizar_CorreoDuplicado_LanzaUserAlreadyExistsException() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(usuarioRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), 1L)).thenReturn(true);
 
         assertThrows(UserAlreadyExistsException.class, () -> usuarioService.actualizar(1L, requestDTO));
-        verify(usuarioRepository, never()).update(any(Usuario.class));
+        verify(usuarioRepository, never()).update(any(Staff.class));
     }
 
     @Test
-    @DisplayName("eliminar borra el usuario cuando existe y envía notificación de desactivación de cuenta")
+    @DisplayName("cambiarEstado actualiza estado de Empleado a INACTIVO y envía correo de desactivación")
+    void cambiarEstado_EmpleadoInactivo_Exitoso() {
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.update(any(Staff.class))).thenReturn(empleado);
+        when(usuarioMapper.toResponseDTO(empleado)).thenReturn(responseDTO);
+
+        UsuarioResponseDTO result = usuarioService.cambiarEstado(2L, "INACTIVO");
+
+        assertNotNull(result);
+        assertEquals("INACTIVO", empleado.getEstado());
+        verify(usuarioRepository).update(empleado);
+        verify(emailService).sendNotificacionEmail(
+                eq("juan@savanacoffee.com"),
+                eq("Desactivación de Cuenta"),
+                eq("Juan Mesero"),
+                anyString(),
+                anyMap(),
+                anyString()
+        );
+    }
+
+    @Test
+    @DisplayName("eliminar borra el miembro de Staff cuando existe y envía notificación de desactivación de cuenta")
     void eliminar_Exitoso() {
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
 
         usuarioService.eliminar(1L);
 

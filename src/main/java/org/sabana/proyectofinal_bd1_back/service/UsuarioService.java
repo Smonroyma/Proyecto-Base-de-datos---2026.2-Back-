@@ -6,19 +6,25 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import java.util.List;
 
 /**
- * Interfaz de servicio para la gestión de usuarios.
+ * Interfaz de servicio para la gestión de miembros del Staff (Administradores y Empleados).
  */
 public interface UsuarioService {
 
     UsuarioResponseDTO buscarPorId(Long id);
 
-    UsuarioResponseDTO buscarPorEmail(String email);
+    UsuarioResponseDTO buscarPorCorreo(String correo);
+
+    default UsuarioResponseDTO buscarPorEmail(String email) {
+        return buscarPorCorreo(email);
+    }
 
     List<UsuarioResponseDTO> obtenerTodos();
 
     UsuarioResponseDTO crear(UsuarioRequestDTO requestDTO);
 
     UsuarioResponseDTO actualizar(Long id, UsuarioRequestDTO requestDTO);
+
+    UsuarioResponseDTO cambiarEstado(Long id, String nuevoEstado);
 
     void eliminar(Long id);
 

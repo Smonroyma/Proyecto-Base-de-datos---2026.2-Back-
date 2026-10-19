@@ -11,17 +11,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sabana.proyectofinal_bd1_back.model.dto.FacturaMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.FacturaRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.FacturaResponseDTO;
+import org.sabana.proyectofinal_bd1_back.model.dto.PagoMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.PagoRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.PagoResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.Cliente;
+import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
 import org.sabana.proyectofinal_bd1_back.model.entity.EstadoFactura;
 import org.sabana.proyectofinal_bd1_back.model.entity.EstadoPedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Factura;
-import org.sabana.proyectofinal_bd1_back.model.entity.Mesa;
 import org.sabana.proyectofinal_bd1_back.model.entity.MetodoPago;
 import org.sabana.proyectofinal_bd1_back.model.entity.PagoFactura;
 import org.sabana.proyectofinal_bd1_back.model.entity.Pedido;
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
 import org.sabana.proyectofinal_bd1_back.repository.FacturaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.MesaRepository;
@@ -30,13 +31,11 @@ import org.sabana.proyectofinal_bd1_back.repository.PagoFacturaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PedidoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
 import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
-import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.FacturaNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.MetodoPagoNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.PagoInvalidoException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.PedidoNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.PedidoYaFacturadoException;
-import org.sabana.proyectofinal_bd1_back.util.exceptions.UsuarioNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -81,14 +80,16 @@ class FacturaServiceImplTest {
     private FacturaMapper facturaMapper;
 
     @Mock
+    private PagoMapper pagoMapper;
+
+    @Mock
     private EmailService emailService;
 
     @InjectMocks
     private FacturaServiceImpl facturaService;
 
     private Cliente cliente;
-    private Usuario usuario;
-    private Mesa mesa;
+    private Staff empleado;
     private Pedido pedido;
     private MetodoPago metodoEfectivo;
     private MetodoPago metodoTarjeta;
@@ -99,177 +100,161 @@ class FacturaServiceImplTest {
     void setUp() {
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombre("Carlos Mendoza")
+                .nombres("Carlos")
+                .apellidos("Mendoza")
                 .telefono("3001234567")
-                .email("carlos@example.com")
+                .correo("carlos@example.com")
                 .build();
 
-        usuario = Usuario.builder()
+        empleado = Empleado.builder()
                 .idUsuario(2L)
-                .nombre("Laura Cajera")
-                .email("laura@savanacoffee.com")
-                .rol("CAJERO")
+                .nombres("Laura")
+                .apellidos("Mesera")
+                .correo("laura@savanacoffee.com")
+                .rol("EMPLEADO")
+                .estado("ACTIVO")
                 .build();
 
-        mesa = Mesa.builder()
-                .idMesa(3L)
-                .numero(5)
-                .capacidad(4)
-                .estado("OCUPADA")
-                .build();
-
+        // Subtotal = 20000.0, Impuesto IVA 19% = 3800.0, Propina = 2000.0 -> Total = 25800.0
         pedido = Pedido.builder()
                 .idPedido(50L)
                 .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
-                .idMesa(3L)
                 .numeroMesa(5)
                 .idUsuario(2L)
-                .nombreUsuario("Laura Cajera")
+                .nombreUsuario("Laura Mesera")
                 .estado(EstadoPedido.ENTREGADO.name())
-                .tipoPedido("MESA")
-                .total(25000.0)
+                .subtotal(20000.0)
                 .build();
 
         metodoEfectivo = MetodoPago.builder()
-                .idMetodoPago(1L)
-                .codigo("EFECTIVO")
+                .tipo("EFECTIVO")
                 .nombre("Efectivo")
                 .activo(true)
                 .build();
 
         metodoTarjeta = MetodoPago.builder()
-                .idMetodoPago(2L)
-                .codigo("TARJETA_CREDITO")
-                .nombre("Tarjeta de Crédito")
+                .tipo("TARJETA")
+                .nombre("Tarjeta")
                 .activo(true)
                 .build();
 
-        // Subtotal = 25000.0, Impuesto (8%) = 2000.0, Propina = 2000.0, Descuento = 0.0 -> Total = 29000.0
         facturaGuardada = Factura.builder()
-                .idFactura(100L)
-                .numeroFactura("FAC-2026-00001")
+                .numFactura("FAC-2026-00001")
                 .idPedido(50L)
                 .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
-                .identificacionCliente("3001234567")
+                .correoCliente("carlos@example.com")
+                .telefonoCliente("3001234567")
                 .idUsuario(2L)
-                .nombreUsuario("Laura Cajera")
-                .fechaEmision(LocalDateTime.now())
-                .subtotal(25000.0)
+                .nombreUsuario("Laura Mesera")
+                .fecha(LocalDateTime.now())
+                .subtotal(20000.0)
                 .propina(2000.0)
-                .descuento(0.0)
-                .impuesto(2000.0)
-                .total(29000.0)
+                .impuesto(3800.0)
+                .total(25800.0)
                 .estado(EstadoFactura.PAGADA.name())
                 .build();
 
         facturaResponseDTO = FacturaResponseDTO.builder()
-                .idFactura(100L)
-                .numeroFactura("FAC-2026-00001")
+                .numFactura("FAC-2026-00001")
                 .idPedido(50L)
                 .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
-                .identificacionCliente("3001234567")
+                .correoCliente("carlos@example.com")
+                .telefonoCliente("3001234567")
                 .idUsuario(2L)
-                .nombreUsuario("Laura Cajera")
-                .subtotal(25000.0)
+                .nombreUsuario("Laura Mesera")
+                .subtotal(20000.0)
                 .propina(2000.0)
-                .descuento(0.0)
-                .impuesto(2000.0)
-                .total(29000.0)
+                .impuesto(3800.0)
+                .total(25800.0)
                 .estado(EstadoFactura.PAGADA.name())
                 .pagos(List.of(PagoResponseDTO.builder()
                         .idPago(10L)
-                        .idMetodoPago(1L)
+                        .numFactura("FAC-2026-00001")
+                        .tipoMetodoPago("EFECTIVO")
                         .nombreMetodoPago("Efectivo")
-                        .monto(29000.0)
+                        .estado("PAGADO")
+                        .total(25800.0)
                         .build()))
                 .build();
     }
 
     @Test
-    @DisplayName("emitirFactura con pago único procesa cobro, marca pedido PAGADO, libera mesa a DISPONIBLE y envía factura HTML por correo")
-    void emitirFactura_PagoUnicoYMesa_Exitoso() {
+    @DisplayName("procesarPagoYEmitirFactura calcula IVA del 19%, genera factura PAGADA, marca pedido PAGADO, libera mesa a DISPONIBLE y envía factura HTML por correo")
+    void procesarPagoYEmitirFactura_Exitoso() {
         PagoRequestDTO pagoUnico = PagoRequestDTO.builder()
-                .idMetodoPago(1L)
-                .monto(29000.0)
-                .referenciaTransaccion("CAJA-001")
+                .tipoMetodoPago("EFECTIVO")
+                .total(25800.0)
                 .build();
 
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
                 .idUsuario(2L)
                 .propina(2000.0)
-                .descuento(0.0)
                 .pagos(List.of(pagoUnico))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoEfectivo));
+        when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoEfectivo));
         when(facturaRepository.generarSiguienteNumeroFactura()).thenReturn("FAC-2026-00001");
         when(facturaRepository.save(any(Factura.class))).thenReturn(facturaGuardada);
-        when(mesaRepository.findById(3L)).thenReturn(Optional.of(mesa));
         when(facturaMapper.toResponseDTO(facturaGuardada)).thenReturn(facturaResponseDTO);
 
-        FacturaResponseDTO result = facturaService.emitirFactura(request);
+        FacturaResponseDTO result = facturaService.procesarPagoYEmitirFactura(request);
 
         assertNotNull(result);
-        assertEquals(100L, result.getIdFactura());
-        assertEquals("FAC-2026-00001", result.getNumeroFactura());
-        assertEquals(29000.0, result.getTotal());
+        assertEquals("FAC-2026-00001", result.getNumFactura());
+        assertEquals(3800.0, result.getImpuesto());
+        assertEquals(25800.0, result.getTotal());
         assertEquals("PAGADA", result.getEstado());
 
-        verify(facturaRepository).save(any(Factura.class));
+        ArgumentCaptor<Factura> facturaCaptor = ArgumentCaptor.forClass(Factura.class);
+        verify(facturaRepository).save(facturaCaptor.capture());
+        assertEquals(3800.0, facturaCaptor.getValue().getImpuesto());
+        assertEquals(25800.0, facturaCaptor.getValue().getTotal());
+
         verify(pagoFacturaRepository).saveBatch(anyList());
         verify(pedidoRepository).updateEstado(50L, EstadoPedido.PAGADO.name());
+        verify(mesaRepository).updateEstado(5, "DISPONIBLE");
         verify(emailService).sendFacturaEmail("carlos@example.com", facturaResponseDTO);
-
-        ArgumentCaptor<Mesa> mesaCaptor = ArgumentCaptor.forClass(Mesa.class);
-        verify(mesaRepository).update(mesaCaptor.capture());
-        assertEquals("DISPONIBLE", mesaCaptor.getValue().getEstado());
     }
 
     @Test
-    @DisplayName("emitirFactura con pagos mixtos (Efectivo + Tarjeta) y descuento en pedido para llevar es exitoso")
-    void emitirFactura_PagosMixtosSinMesa_Exitoso() {
-        pedido.setIdMesa(null);
-        pedido.setTipoPedido("LLEVAR");
-
-        // Subtotal = 25000.0, Impuesto = 2000.0, Propina = 1000.0, Descuento = 3000.0 -> Total = 25000.0
+    @DisplayName("procesarPagoYEmitirFactura con pagos mixtos (EFECTIVO + TARJETA) es exitoso")
+    void procesarPagoYEmitirFactura_PagosMixtos_Exitoso() {
         PagoRequestDTO pagoEfectivo = PagoRequestDTO.builder()
-                .idMetodoPago(1L)
-                .monto(10000.0)
+                .tipoMetodoPago("EFECTIVO")
+                .total(10000.0)
                 .build();
 
         PagoRequestDTO pagoTarjeta = PagoRequestDTO.builder()
-                .idMetodoPago(2L)
-                .monto(15000.0)
-                .referenciaTransaccion("VOUCHER-7788")
+                .tipoMetodoPago("TARJETA")
+                .total(15800.0)
                 .build();
 
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
                 .idUsuario(2L)
-                .propina(1000.0)
-                .descuento(3000.0)
+                .propina(2000.0)
                 .pagos(List.of(pagoEfectivo, pagoTarjeta))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoEfectivo));
-        when(metodoPagoRepository.findById(2L)).thenReturn(Optional.of(metodoTarjeta));
+        when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoEfectivo));
+        when(metodoPagoRepository.findByTipo("TARJETA")).thenReturn(Optional.of(metodoTarjeta));
         when(facturaRepository.generarSiguienteNumeroFactura()).thenReturn("FAC-2026-00002");
         when(facturaRepository.save(any(Factura.class))).thenReturn(facturaGuardada);
         when(facturaMapper.toResponseDTO(facturaGuardada)).thenReturn(facturaResponseDTO);
 
-        FacturaResponseDTO result = facturaService.emitirFactura(request);
+        FacturaResponseDTO result = facturaService.procesarPagoYEmitirFactura(request);
 
         assertNotNull(result);
         @SuppressWarnings("unchecked")
@@ -277,213 +262,98 @@ class FacturaServiceImplTest {
         verify(pagoFacturaRepository).saveBatch(pagosCaptor.capture());
         assertEquals(2, pagosCaptor.getValue().size());
         verify(pedidoRepository).updateEstado(50L, EstadoPedido.PAGADO.name());
-        verify(mesaRepository, never()).update(any());
+        verify(mesaRepository).updateEstado(5, "DISPONIBLE");
     }
 
     @Test
-    @DisplayName("emitirFactura lanza PedidoNotFoundException cuando el pedido no existe")
-    void emitirFactura_PedidoNoExiste_LanzaPedidoNotFoundException() {
+    @DisplayName("procesarPagoYEmitirFactura lanza PedidoNotFoundException cuando el pedido no existe")
+    void procesarPagoYEmitirFactura_PedidoNoExiste_LanzaPedidoNotFoundException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(999L)
-                .idUsuario(2L)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(27000.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").total(23800.0).build()))
                 .build();
 
         when(pedidoRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(PedidoNotFoundException.class, () -> facturaService.emitirFactura(request));
+        assertThrows(PedidoNotFoundException.class, () -> facturaService.procesarPagoYEmitirFactura(request));
         verify(facturaRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("emitirFactura lanza PedidoYaFacturadoException cuando el pedido ya tiene factura emitida")
-    void emitirFactura_PedidoYaFacturadoEnBD_LanzaPedidoYaFacturadoException() {
+    @DisplayName("procesarPagoYEmitirFactura lanza PedidoYaFacturadoException cuando el pedido ya tiene factura emitida")
+    void procesarPagoYEmitirFactura_PedidoYaFacturadoEnBD_LanzaPedidoYaFacturadoException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
-                .idUsuario(2L)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(27000.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").total(23800.0).build()))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(true);
 
-        assertThrows(PedidoYaFacturadoException.class, () -> facturaService.emitirFactura(request));
+        assertThrows(PedidoYaFacturadoException.class, () -> facturaService.procesarPagoYEmitirFactura(request));
         verify(facturaRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("emitirFactura lanza PedidoYaFacturadoException cuando el pedido ya tiene estado PAGADO")
-    void emitirFactura_PedidoEnEstadoPagado_LanzaPedidoYaFacturadoException() {
-        pedido.setEstado(EstadoPedido.PAGADO.name());
-        FacturaRequestDTO request = FacturaRequestDTO.builder()
-                .idPedido(50L)
-                .idUsuario(2L)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(27000.0).build()))
-                .build();
-
-        when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
-        when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-
-        assertThrows(PedidoYaFacturadoException.class, () -> facturaService.emitirFactura(request));
-        verify(facturaRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("emitirFactura lanza PagoInvalidoException cuando el pedido se encuentra CANCELADO")
-    void emitirFactura_PedidoCancelado_LanzaPagoInvalidoException() {
-        pedido.setEstado(EstadoPedido.CANCELADO.name());
-        FacturaRequestDTO request = FacturaRequestDTO.builder()
-                .idPedido(50L)
-                .idUsuario(2L)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(27000.0).build()))
-                .build();
-
-        when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
-        when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-
-        assertThrows(PagoInvalidoException.class, () -> facturaService.emitirFactura(request));
-        verify(facturaRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("emitirFactura lanza UsuarioNotFoundException cuando el cajero no existe")
-    void emitirFactura_UsuarioNoExiste_LanzaUsuarioNotFoundException() {
-        FacturaRequestDTO request = FacturaRequestDTO.builder()
-                .idPedido(50L)
-                .idUsuario(99L)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(27000.0).build()))
-                .build();
-
-        when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
-        when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(UsuarioNotFoundException.class, () -> facturaService.emitirFactura(request));
-    }
-
-    @Test
-    @DisplayName("emitirFactura lanza ClienteNotFoundException cuando el cliente del pedido no existe")
-    void emitirFactura_ClienteNoExiste_LanzaClienteNotFoundException() {
-        FacturaRequestDTO request = FacturaRequestDTO.builder()
-                .idPedido(50L)
-                .idUsuario(2L)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(27000.0).build()))
-                .build();
-
-        when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
-        when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(ClienteNotFoundException.class, () -> facturaService.emitirFactura(request));
-    }
-
-    @Test
-    @DisplayName("emitirFactura lanza MetodoPagoNotFoundException cuando el método de pago no existe")
-    void emitirFactura_MetodoPagoNoExiste_LanzaMetodoPagoNotFoundException() {
+    @DisplayName("procesarPagoYEmitirFactura lanza PagoInvalidoException cuando la suma de pagos no cuadra con el total (subtotal + 19% IVA + propina)")
+    void procesarPagoYEmitirFactura_DescuadreDeMontos_LanzaPagoInvalidoException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
                 .idUsuario(2L)
                 .propina(2000.0)
-                .descuento(0.0)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(99L).monto(29000.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").total(20000.0).build()))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(metodoPagoRepository.findById(99L)).thenReturn(Optional.empty());
+        when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoEfectivo));
 
-        assertThrows(MetodoPagoNotFoundException.class, () -> facturaService.emitirFactura(request));
-        verify(facturaRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("emitirFactura lanza PagoInvalidoException cuando el método de pago está inactivo")
-    void emitirFactura_MetodoPagoInactivo_LanzaPagoInvalidoException() {
-        metodoEfectivo.setActivo(false);
-        FacturaRequestDTO request = FacturaRequestDTO.builder()
-                .idPedido(50L)
-                .idUsuario(2L)
-                .propina(2000.0)
-                .descuento(0.0)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(29000.0).build()))
-                .build();
-
-        when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
-        when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoEfectivo));
-
-        assertThrows(PagoInvalidoException.class, () -> facturaService.emitirFactura(request));
-        verify(facturaRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("emitirFactura lanza PagoInvalidoException cuando la suma de pagos no cuadra con el total")
-    void emitirFactura_DescuadreDeMontos_LanzaPagoInvalidoException() {
-        // Total esperado = 29000.0, pero se envía un pago de 20000.0
-        FacturaRequestDTO request = FacturaRequestDTO.builder()
-                .idPedido(50L)
-                .idUsuario(2L)
-                .propina(2000.0)
-                .descuento(0.0)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(20000.0).build()))
-                .build();
-
-        when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
-        when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoEfectivo));
-
-        assertThrows(PagoInvalidoException.class, () -> facturaService.emitirFactura(request));
+        assertThrows(PagoInvalidoException.class, () -> facturaService.procesarPagoYEmitirFactura(request));
         verify(facturaRepository, never()).save(any());
         verify(pedidoRepository, never()).updateEstado(anyLong(), anyString());
     }
 
     @Test
-    @DisplayName("emitirFactura lanza PagoInvalidoException cuando el descuento supera el subtotal más impuestos")
-    void emitirFactura_DescuentoExcesivo_LanzaPagoInvalidoException() {
+    @DisplayName("procesarPagoYEmitirFactura lanza MetodoPagoNotFoundException cuando el tipo de método de pago no existe")
+    void procesarPagoYEmitirFactura_MetodoPagoNoExiste_LanzaMetodoPagoNotFoundException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
                 .idUsuario(2L)
-                .propina(0.0)
-                .descuento(35000.0)
-                .pagos(List.of(PagoRequestDTO.builder().idMetodoPago(1L).monto(1000.0).build()))
+                .propina(2000.0)
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("CHEQUE").total(25800.0).build()))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(metodoPagoRepository.findByTipo("CHEQUE")).thenReturn(Optional.empty());
 
-        assertThrows(PagoInvalidoException.class, () -> facturaService.emitirFactura(request));
+        assertThrows(MetodoPagoNotFoundException.class, () -> facturaService.procesarPagoYEmitirFactura(request));
         verify(facturaRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("buscarPorId retorna FacturaResponseDTO cuando la factura existe")
-    void buscarPorId_Exitoso() {
-        when(facturaRepository.findById(100L)).thenReturn(Optional.of(facturaGuardada));
+    @DisplayName("buscarPorNumFactura retorna FacturaResponseDTO cuando la factura existe")
+    void buscarPorNumFactura_Exitoso() {
+        when(facturaRepository.findByNumFactura("FAC-2026-00001")).thenReturn(Optional.of(facturaGuardada));
         when(facturaMapper.toResponseDTO(facturaGuardada)).thenReturn(facturaResponseDTO);
 
-        FacturaResponseDTO result = facturaService.buscarPorId(100L);
+        FacturaResponseDTO result = facturaService.buscarPorNumFactura("FAC-2026-00001");
 
         assertNotNull(result);
-        assertEquals(100L, result.getIdFactura());
-        assertEquals("FAC-2026-00001", result.getNumeroFactura());
-        verify(facturaRepository).findById(100L);
+        assertEquals("FAC-2026-00001", result.getNumFactura());
+        verify(facturaRepository).findByNumFactura("FAC-2026-00001");
     }
 
     @Test
-    @DisplayName("buscarPorId lanza FacturaNotFoundException cuando la factura no existe")
-    void buscarPorId_NoExiste_LanzaFacturaNotFoundException() {
-        when(facturaRepository.findById(999L)).thenReturn(Optional.empty());
+    @DisplayName("buscarPorNumFactura lanza FacturaNotFoundException cuando la factura no existe")
+    void buscarPorNumFactura_NoExiste_LanzaFacturaNotFoundException() {
+        when(facturaRepository.findByNumFactura("FAC-2026-99999")).thenReturn(Optional.empty());
 
-        assertThrows(FacturaNotFoundException.class, () -> facturaService.buscarPorId(999L));
+        assertThrows(FacturaNotFoundException.class, () -> facturaService.buscarPorNumFactura("FAC-2026-99999"));
     }
 
     @Test
@@ -500,97 +370,23 @@ class FacturaServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerFacturas sin filtros retorna todas las facturas")
-    void obtenerFacturas_SinFiltros_RetornaTodas() {
-        List<Factura> lista = List.of(facturaGuardada);
-        when(facturaRepository.findAll()).thenReturn(lista);
-        when(facturaMapper.toResponseDTOList(lista)).thenReturn(List.of(facturaResponseDTO));
-
-        List<FacturaResponseDTO> result = facturaService.obtenerFacturas(null, null, null);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(facturaRepository).findAll();
-    }
-
-    @Test
-    @DisplayName("obtenerFacturas con filtro de clienteId consulta por cliente")
-    void obtenerFacturas_ConClienteId_RetornaFacturasCliente() {
-        List<Factura> lista = List.of(facturaGuardada);
-        when(facturaRepository.findByClienteId(1L)).thenReturn(lista);
-        when(facturaMapper.toResponseDTOList(lista)).thenReturn(List.of(facturaResponseDTO));
-
-        List<FacturaResponseDTO> result = facturaService.obtenerFacturas(1L, null, null);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(facturaRepository).findByClienteId(1L);
-    }
-
-    @Test
-    @DisplayName("obtenerFacturas con rango de fechas consulta por rango y valida orden cronológico")
-    void obtenerFacturas_ConRangoFechas_RetornaFacturasEnRango() {
-        LocalDateTime inicio = LocalDateTime.of(2026, 10, 1, 0, 0);
-        LocalDateTime fin = LocalDateTime.of(2026, 10, 31, 23, 59);
-        List<Factura> lista = List.of(facturaGuardada);
-
-        when(facturaRepository.findByRangoFechas(inicio, fin)).thenReturn(lista);
-        when(facturaMapper.toResponseDTOList(lista)).thenReturn(List.of(facturaResponseDTO));
-
-        List<FacturaResponseDTO> result = facturaService.obtenerFacturas(null, inicio, fin);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(facturaRepository).findByRangoFechas(inicio, fin);
-    }
-
-    @Test
-    @DisplayName("obtenerFacturas lanza IllegalArgumentException cuando fechaFin es anterior a fechaInicio")
-    void obtenerFacturas_RangoFechasInvalido_LanzaIllegalArgumentException() {
-        LocalDateTime inicio = LocalDateTime.of(2026, 10, 31, 0, 0);
-        LocalDateTime fin = LocalDateTime.of(2026, 10, 1, 0, 0);
-
-        assertThrows(IllegalArgumentException.class, () -> facturaService.obtenerFacturas(null, inicio, fin));
-    }
-
-    @Test
-    @DisplayName("anularFactura actualiza el estado a ANULADA exitosamente")
-    void anularFactura_Exitoso() {
-        FacturaResponseDTO anuladaResponse = FacturaResponseDTO.builder()
-                .idFactura(100L)
-                .numeroFactura("FAC-2026-00001")
-                .estado(EstadoFactura.ANULADA.name())
+    @DisplayName("obtenerPagos retorna la lista de pagos filtrados por numFactura")
+    void obtenerPagos_PorNumFactura_Exitoso() {
+        PagoFactura pago = PagoFactura.builder()
+                .idPago(10L)
+                .numFactura("FAC-2026-00001")
+                .tipoMetodoPago("EFECTIVO")
+                .total(25800.0)
+                .estado("PAGADO")
                 .build();
+        when(pagoFacturaRepository.findByNumFactura("FAC-2026-00001")).thenReturn(List.of(pago));
+        when(pagoMapper.toResponseDTOList(List.of(pago))).thenReturn(facturaResponseDTO.getPagos());
 
-        when(facturaRepository.findById(100L)).thenReturn(Optional.of(facturaGuardada));
-        when(facturaRepository.updateEstado(100L, EstadoFactura.ANULADA.name())).thenReturn(true);
-        when(facturaMapper.toResponseDTO(facturaGuardada)).thenReturn(anuladaResponse);
-
-        FacturaResponseDTO result = facturaService.anularFactura(100L);
+        List<PagoResponseDTO> result = facturaService.obtenerPagos("FAC-2026-00001");
 
         assertNotNull(result);
-        assertEquals(EstadoFactura.ANULADA.name(), result.getEstado());
-        assertEquals(EstadoFactura.ANULADA.name(), facturaGuardada.getEstado());
-        verify(facturaRepository).updateEstado(100L, EstadoFactura.ANULADA.name());
-    }
-
-    @Test
-    @DisplayName("anularFactura lanza FacturaNotFoundException cuando la factura no existe")
-    void anularFactura_NoExiste_LanzaFacturaNotFoundException() {
-        when(facturaRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThrows(FacturaNotFoundException.class, () -> facturaService.anularFactura(999L));
-        verify(facturaRepository, never()).updateEstado(anyLong(), anyString());
-    }
-
-    @Test
-    @DisplayName("anularFactura lanza IllegalStateException cuando la factura ya está ANULADA")
-    void anularFactura_YaAnulada_LanzaIllegalStateException() {
-        facturaGuardada.setEstado(EstadoFactura.ANULADA.name());
-        when(facturaRepository.findById(100L)).thenReturn(Optional.of(facturaGuardada));
-
-        assertThrows(IllegalStateException.class, () -> facturaService.anularFactura(100L));
-        verify(facturaRepository, never()).updateEstado(anyLong(), anyString());
+        assertEquals(1, result.size());
+        verify(pagoFacturaRepository).findByNumFactura("FAC-2026-00001");
     }
 
 }

@@ -3,6 +3,7 @@ package org.sabana.proyectofinal_bd1_back.repository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
@@ -20,7 +21,7 @@ public class DashboardRepositoryImpl implements DashboardRepository {
 
     @Override
     public Integer countProductosActivos() {
-        String sql = "SELECT COUNT(*) FROM producto WHERE disponible = true";
+        String sql = "SELECT COUNT(*) FROM producto WHERE disponibilidad = true";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
         return count != null ? count : 0;
     }
@@ -44,7 +45,7 @@ public class DashboardRepositoryImpl implements DashboardRepository {
         String sql = """
                 SELECT COUNT(*) FROM pedido
                 WHERE estado IN ('ENTREGADO', 'PAGADO')
-                  AND fecha_hora >= ? AND fecha_hora <= ?
+                  AND fecha >= ? AND fecha <= ?
                 """;
         Integer count = jdbcTemplate.queryForObject(
                 sql,
@@ -60,7 +61,7 @@ public class DashboardRepositoryImpl implements DashboardRepository {
         String sql = """
                 SELECT COALESCE(SUM(total), 0.0) FROM factura
                 WHERE estado = 'PAGADA'
-                  AND fecha_emision >= ? AND fecha_emision <= ?
+                  AND fecha >= ? AND fecha <= ?
                 """;
         Double sum = jdbcTemplate.queryForObject(
                 sql,
@@ -76,13 +77,12 @@ public class DashboardRepositoryImpl implements DashboardRepository {
         String sql = """
                 SELECT COUNT(*) FROM reserva
                 WHERE estado IN ('PENDIENTE', 'CONFIRMADA')
-                  AND fecha_hora >= ? AND fecha_hora <= ?
+                  AND fecha = ?
                 """;
         Integer count = jdbcTemplate.queryForObject(
                 sql,
                 Integer.class,
-                Timestamp.valueOf(inicioDia),
-                Timestamp.valueOf(finDia)
+                Date.valueOf(inicioDia.toLocalDate())
         );
         return count != null ? count : 0;
     }

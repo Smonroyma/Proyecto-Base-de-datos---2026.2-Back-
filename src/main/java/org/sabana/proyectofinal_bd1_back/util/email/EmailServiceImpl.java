@@ -128,7 +128,7 @@ public class EmailServiceImpl implements EmailService {
         }
 
         String contenidoHtml = emailTemplateBuilder.buildFacturaEmailTemplate(factura);
-        String numeroFactura = factura.getNumeroFactura() != null ? factura.getNumeroFactura() : "S/N";
+        String numeroFactura = factura.getNumFactura() != null ? factura.getNumFactura() : "S/N";
         String asunto = String.format("☕ Comprobante de Pago %s - Savana Data Coffee", numeroFactura);
 
         if (mailSender == null) {

@@ -1,34 +1,42 @@
 package org.sabana.proyectofinal_bd1_back.repository;
 
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repositorio para la gestión de persistencia de Usuario mediante SQL nativo.
+ * Repositorio para la gestión de persistencia de la jerarquía Staff (Administrador y Empleado) mediante SQL nativo.
+ * El código OTP 2FA no se almacena en base de datos, sino en memoria (ConcurrentHashMap).
  */
 public interface UsuarioRepository {
 
-    Optional<Usuario> findById(Long id);
+    Optional<Staff> findById(Long id);
 
-    Optional<Usuario> findByEmail(String email);
+    Optional<Staff> findByCorreo(String correo);
 
-    List<Usuario> findAll();
+    default Optional<Staff> findByEmail(String email) {
+        return findByCorreo(email);
+    }
 
-    Usuario save(Usuario usuario);
+    List<Staff> findAll();
 
-    Usuario update(Usuario usuario);
+    Staff save(Staff staff);
+
+    Staff update(Staff staff);
 
     boolean deleteById(Long id);
 
-    boolean existsByEmail(String email);
+    boolean existsByCorreo(String correo);
 
-    boolean existsByEmailAndNotId(String email, Long id);
+    default boolean existsByEmail(String email) {
+        return existsByCorreo(email);
+    }
 
-    void guardarCodigoOTP(Long idUsuario, String codigoOtp, LocalDateTime expiracion);
+    boolean existsByCorreoAndNotId(String correo, Long id);
 
-    void limpiarCodigoOTP(Long idUsuario);
+    default boolean existsByEmailAndNotId(String email, Long id) {
+        return existsByCorreoAndNotId(email, id);
+    }
 
 }

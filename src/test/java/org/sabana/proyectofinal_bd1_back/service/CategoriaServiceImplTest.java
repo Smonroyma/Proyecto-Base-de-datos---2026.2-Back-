@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,51 +46,48 @@ class CategoriaServiceImplTest {
     @BeforeEach
     void setUp() {
         categoria = Categoria.builder()
-                .idCategoria(1L)
-                .nombre("Bebidas Calientes")
+                .nombreCategoria("Bebidas Calientes")
                 .descripcion("Cafés espresso y lattes")
-                .activo(true)
+                .estado("ACTIVA")
                 .build();
 
         requestDTO = CategoriaRequestDTO.builder()
-                .nombre("Bebidas Calientes")
+                .nombreCategoria("Bebidas Calientes")
                 .descripcion("Cafés espresso y lattes")
-                .activo(true)
+                .estado("ACTIVA")
                 .build();
 
         responseDTO = CategoriaResponseDTO.builder()
-                .idCategoria(1L)
-                .nombre("Bebidas Calientes")
+                .nombreCategoria("Bebidas Calientes")
                 .descripcion("Cafés espresso y lattes")
-                .activo(true)
+                .estado("ACTIVA")
                 .build();
     }
 
     @Test
-    @DisplayName("buscarPorId retorna CategoriaResponseDTO cuando la categoría existe")
-    void buscarPorId_Exitoso() {
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
+    @DisplayName("buscarPorNombre retorna CategoriaResponseDTO cuando la categoría existe")
+    void buscarPorNombre_Exitoso() {
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
         when(categoriaMapper.toResponseDTO(categoria)).thenReturn(responseDTO);
 
-        CategoriaResponseDTO result = categoriaService.buscarPorId(1L);
+        CategoriaResponseDTO result = categoriaService.buscarPorNombre("Bebidas Calientes");
 
         assertNotNull(result);
-        assertEquals(1L, result.getIdCategoria());
-        assertEquals("Bebidas Calientes", result.getNombre());
-        verify(categoriaRepository).findById(1L);
+        assertEquals("Bebidas Calientes", result.getNombreCategoria());
+        verify(categoriaRepository).findByNombreCategoria("Bebidas Calientes");
     }
 
     @Test
-    @DisplayName("buscarPorId lanza CategoriaNotFoundException cuando la categoría no existe")
-    void buscarPorId_NoExiste_LanzaCategoriaNotFoundException() {
-        when(categoriaRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("buscarPorNombre lanza CategoriaNotFoundException cuando la categoría no existe")
+    void buscarPorNombre_NoExiste_LanzaCategoriaNotFoundException() {
+        when(categoriaRepository.findByNombreCategoria("Inexistente")).thenReturn(Optional.empty());
 
-        assertThrows(CategoriaNotFoundException.class, () -> categoriaService.buscarPorId(99L));
-        verify(categoriaRepository).findById(99L);
+        assertThrows(CategoriaNotFoundException.class, () -> categoriaService.buscarPorNombre("Inexistente"));
+        verify(categoriaRepository).findByNombreCategoria("Inexistente");
     }
 
     @Test
-    @DisplayName("obtenerCategorias con soloActivas null retorna todas las categorías")
+    @DisplayName("obtenerCategorias con estado null retorna todas las categorías")
     void obtenerCategorias_SinFiltro_RetornaTodas() {
         List<Categoria> categorias = List.of(categoria);
         List<CategoriaResponseDTO> responseList = List.of(responseDTO);
@@ -105,41 +103,25 @@ class CategoriaServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerCategorias con soloActivas false retorna todas las categorías")
-    void obtenerCategorias_SoloActivasFalse_RetornaTodas() {
+    @DisplayName("obtenerCategorias con estado ACTIVA retorna solo las categorías activas")
+    void obtenerCategorias_EstadoActiva_RetornaFiltradas() {
         List<Categoria> categorias = List.of(categoria);
         List<CategoriaResponseDTO> responseList = List.of(responseDTO);
 
-        when(categoriaRepository.findAll()).thenReturn(categorias);
+        when(categoriaRepository.findByEstado("ACTIVA")).thenReturn(categorias);
         when(categoriaMapper.toResponseDTOList(categorias)).thenReturn(responseList);
 
-        List<CategoriaResponseDTO> result = categoriaService.obtenerCategorias(false);
+        List<CategoriaResponseDTO> result = categoriaService.obtenerCategorias("ACTIVA");
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(categoriaRepository).findAll();
-    }
-
-    @Test
-    @DisplayName("obtenerCategorias con soloActivas true retorna solo las categorías activas")
-    void obtenerCategorias_SoloActivasTrue_RetornaSoloActivas() {
-        List<Categoria> categorias = List.of(categoria);
-        List<CategoriaResponseDTO> responseList = List.of(responseDTO);
-
-        when(categoriaRepository.findAllActivas()).thenReturn(categorias);
-        when(categoriaMapper.toResponseDTOList(categorias)).thenReturn(responseList);
-
-        List<CategoriaResponseDTO> result = categoriaService.obtenerCategorias(true);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(categoriaRepository).findAllActivas();
+        verify(categoriaRepository).findByEstado("ACTIVA");
     }
 
     @Test
     @DisplayName("crear registra una categoría exitosamente cuando el nombre no está duplicado")
     void crear_Exitoso() {
-        when(categoriaRepository.existsByNombre("Bebidas Calientes")).thenReturn(false);
+        when(categoriaRepository.existsByNombreCategoria("Bebidas Calientes")).thenReturn(false);
         when(categoriaMapper.toEntity(requestDTO)).thenReturn(categoria);
         when(categoriaRepository.save(any(Categoria.class))).thenReturn(categoria);
         when(categoriaMapper.toResponseDTO(categoria)).thenReturn(responseDTO);
@@ -147,69 +129,69 @@ class CategoriaServiceImplTest {
         CategoriaResponseDTO result = categoriaService.crear(requestDTO);
 
         assertNotNull(result);
-        assertEquals("Bebidas Calientes", result.getNombre());
+        assertEquals("Bebidas Calientes", result.getNombreCategoria());
         verify(categoriaRepository).save(any(Categoria.class));
     }
 
     @Test
     @DisplayName("crear lanza CategoriaAlreadyExistsException cuando el nombre ya está registrado")
     void crear_NombreDuplicado_LanzaCategoriaAlreadyExistsException() {
-        when(categoriaRepository.existsByNombre("Bebidas Calientes")).thenReturn(true);
+        when(categoriaRepository.existsByNombreCategoria("Bebidas Calientes")).thenReturn(true);
 
         assertThrows(CategoriaAlreadyExistsException.class, () -> categoriaService.crear(requestDTO));
         verify(categoriaRepository, never()).save(any(Categoria.class));
     }
 
     @Test
-    @DisplayName("actualizar modifica una categoría exitosamente cuando el nombre no está duplicado")
+    @DisplayName("actualizar modifica una categoría exitosamente")
     void actualizar_Exitoso() {
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
-        when(categoriaRepository.existsByNombreAndNotId("Bebidas Calientes", 1L)).thenReturn(false);
-        when(categoriaRepository.update(categoria)).thenReturn(categoria);
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.update(eq("Bebidas Calientes"), any(Categoria.class))).thenReturn(categoria);
         when(categoriaMapper.toResponseDTO(categoria)).thenReturn(responseDTO);
 
-        CategoriaResponseDTO result = categoriaService.actualizar(1L, requestDTO);
+        CategoriaResponseDTO result = categoriaService.actualizar("Bebidas Calientes", requestDTO);
 
         assertNotNull(result);
-        verify(categoriaRepository).update(categoria);
+        verify(categoriaRepository).update(eq("Bebidas Calientes"), any(Categoria.class));
     }
 
     @Test
     @DisplayName("actualizar lanza CategoriaNotFoundException cuando la categoría a actualizar no existe")
     void actualizar_NoExiste_LanzaCategoriaNotFoundException() {
-        when(categoriaRepository.findById(99L)).thenReturn(Optional.empty());
+        when(categoriaRepository.findByNombreCategoria("Inexistente")).thenReturn(Optional.empty());
 
-        assertThrows(CategoriaNotFoundException.class, () -> categoriaService.actualizar(99L, requestDTO));
-        verify(categoriaRepository, never()).update(any(Categoria.class));
+        assertThrows(CategoriaNotFoundException.class, () -> categoriaService.actualizar("Inexistente", requestDTO));
+        verify(categoriaRepository, never()).update(any(), any(Categoria.class));
     }
 
     @Test
-    @DisplayName("actualizar lanza CategoriaAlreadyExistsException si otra categoría ya tiene ese nombre")
+    @DisplayName("actualizar lanza CategoriaAlreadyExistsException si se renombra a otra categoría existente")
     void actualizar_NombreDuplicado_LanzaCategoriaAlreadyExistsException() {
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
-        when(categoriaRepository.existsByNombreAndNotId("Bebidas Calientes", 1L)).thenReturn(true);
+        requestDTO.setNombreCategoria("Postres");
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.existsByNombreCategoria("Postres")).thenReturn(true);
 
-        assertThrows(CategoriaAlreadyExistsException.class, () -> categoriaService.actualizar(1L, requestDTO));
-        verify(categoriaRepository, never()).update(any(Categoria.class));
+        assertThrows(CategoriaAlreadyExistsException.class, () -> categoriaService.actualizar("Bebidas Calientes", requestDTO));
+        verify(categoriaRepository, never()).update(any(), any(Categoria.class));
     }
 
     @Test
     @DisplayName("eliminar borra la categoría cuando existe")
     void eliminar_Exitoso() {
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
 
-        categoriaService.eliminar(1L);
+        categoriaService.eliminar("Bebidas Calientes");
 
-        verify(categoriaRepository).deleteById(1L);
+        verify(categoriaRepository).deleteByNombreCategoria("Bebidas Calientes");
     }
 
     @Test
     @DisplayName("eliminar lanza CategoriaNotFoundException cuando la categoría no existe")
     void eliminar_NoExiste_LanzaCategoriaNotFoundException() {
-        when(categoriaRepository.findById(99L)).thenReturn(Optional.empty());
+        when(categoriaRepository.findByNombreCategoria("Inexistente")).thenReturn(Optional.empty());
 
-        assertThrows(CategoriaNotFoundException.class, () -> categoriaService.eliminar(99L));
-        verify(categoriaRepository, never()).deleteById(99L);
+        assertThrows(CategoriaNotFoundException.class, () -> categoriaService.eliminar("Inexistente"));
+        verify(categoriaRepository, never()).deleteByNombreCategoria("Inexistente");
     }
 
 }

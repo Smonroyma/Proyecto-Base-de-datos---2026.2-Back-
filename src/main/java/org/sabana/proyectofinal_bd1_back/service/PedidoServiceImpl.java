@@ -10,8 +10,7 @@ import org.sabana.proyectofinal_bd1_back.model.entity.EstadoPedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Mesa;
 import org.sabana.proyectofinal_bd1_back.model.entity.Pedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Producto;
-import org.sabana.proyectofinal_bd1_back.model.entity.TipoPedido;
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
 import org.sabana.proyectofinal_bd1_back.repository.DetallePedidoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.MesaRepository;
@@ -33,6 +32,13 @@ import java.util.List;
 
 /**
  * Implementación de la lógica de negocio para la gestión transaccional de Pedidos y Detalles.
+ * Regla V2:
+ * - Todo pedido exige obligatoriamente una mesa (numeroMesa) y un cliente (idCliente).
+ * - Se maneja subtotal (antes de IVA 19% y propina).
+ * - Máquina de estados unidireccional estricta:
+ *   PENDIENTE -> EN_PREPARACION | CANCELADO
+ *   EN_PREPARACION -> ENTREGADO
+ *   ENTREGADO -> PAGADO
  */
 @Service
 public class PedidoServiceImpl implements PedidoService {
@@ -64,48 +70,41 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     @Transactional
     public PedidoResponseDTO crearPedido(PedidoRequestDTO requestDTO) {
+        if (requestDTO.getNumeroMesa() == null) {
+            throw new IllegalArgumentException("El número de mesa es obligatorio. No se permiten pedidos para llevar.");
+        }
+
         Cliente cliente = clienteRepository.findById(requestDTO.getIdCliente())
                 .orElseThrow(() -> new ClienteNotFoundException(requestDTO.getIdCliente()));
 
-        Usuario usuario = usuarioRepository.findById(requestDTO.getIdUsuario())
+        Staff staff = usuarioRepository.findById(requestDTO.getIdUsuario())
                 .orElseThrow(() -> new UsuarioNotFoundException(requestDTO.getIdUsuario()));
 
-        if (!TipoPedido.esValido(requestDTO.getTipoPedido())) {
-            throw new IllegalArgumentException(String.format(
-                    "Tipo de pedido inválido: '%s'. Valores permitidos: MESA, LLEVAR", requestDTO.getTipoPedido()));
+        Mesa mesa = mesaRepository.findByNumeroMesa(requestDTO.getNumeroMesa())
+                .orElseThrow(() -> new MesaNotFoundException(requestDTO.getNumeroMesa()));
+
+        if ("EN_MANTENIMIENTO".equalsIgnoreCase(mesa.getEstado())) {
+            throw new IllegalStateException(String.format(
+                    "La mesa número %d se encuentra en mantenimiento y no puede recibir pedidos", mesa.getNumeroMesa()));
         }
 
-        Mesa mesa = null;
-        if (TipoPedido.MESA.name().equalsIgnoreCase(requestDTO.getTipoPedido())) {
-            if (requestDTO.getIdMesa() == null) {
-                throw new IllegalArgumentException("Debe especificar una mesa para pedidos de tipo MESA");
-            }
-            mesa = mesaRepository.findById(requestDTO.getIdMesa())
-                    .orElseThrow(() -> new MesaNotFoundException(requestDTO.getIdMesa()));
-
-            if ("EN_MANTENIMIENTO".equalsIgnoreCase(mesa.getEstado())) {
-                throw new IllegalStateException(String.format(
-                        "La mesa número %d se encuentra en mantenimiento y no puede recibir pedidos", mesa.getNumero()));
-            }
-
-            if ("DISPONIBLE".equalsIgnoreCase(mesa.getEstado())) {
-                mesa.setEstado("OCUPADA");
-                mesaRepository.update(mesa);
-            }
+        if ("DISPONIBLE".equalsIgnoreCase(mesa.getEstado()) || "RESERVADA".equalsIgnoreCase(mesa.getEstado())) {
+            mesa.setEstado("OCUPADA");
+            mesaRepository.update(mesa);
         }
 
         if (requestDTO.getDetalles() == null || requestDTO.getDetalles().isEmpty()) {
             throw new IllegalArgumentException("El pedido debe contener al menos un detalle de producto");
         }
 
-        double total = 0.0;
+        double subtotalPedido = 0.0;
         List<DetallePedido> detallesList = new ArrayList<>();
 
         for (DetallePedidoRequestDTO itemReq : requestDTO.getDetalles()) {
             Producto producto = productoRepository.findById(itemReq.getIdProducto())
                     .orElseThrow(() -> new ProductoNotFoundException(itemReq.getIdProducto()));
 
-            if (!Boolean.TRUE.equals(producto.getDisponible())) {
+            if (!Boolean.TRUE.equals(producto.getDisponibilidad())) {
                 throw new StockInsuficienteException(String.format(
                         "El producto '%s' no se encuentra disponible para la venta", producto.getNombre()));
             }
@@ -117,8 +116,8 @@ public class PedidoServiceImpl implements PedidoService {
             }
 
             double precioUnitario = producto.getPrecio();
-            double subtotal = precioUnitario * itemReq.getCantidad();
-            total += subtotal;
+            double subtotalItem = Math.round(precioUnitario * itemReq.getCantidad() * 100.0) / 100.0;
+            subtotalPedido += subtotalItem;
 
             int nuevoStock = producto.getStock() - itemReq.getCantidad();
             productoRepository.updateStock(producto.getIdProducto(), nuevoStock);
@@ -129,23 +128,23 @@ public class PedidoServiceImpl implements PedidoService {
                     .nombreProducto(producto.getNombre())
                     .cantidad(itemReq.getCantidad())
                     .precioUnitario(precioUnitario)
-                    .subtotal(subtotal)
+                    .subtotal(subtotalItem)
                     .build();
 
             detallesList.add(detalle);
         }
 
+        subtotalPedido = Math.round(subtotalPedido * 100.0) / 100.0;
+
         Pedido pedido = Pedido.builder()
                 .idCliente(cliente.getIdCliente())
-                .nombreCliente(cliente.getNombre())
-                .idMesa(mesa != null ? mesa.getIdMesa() : null)
-                .numeroMesa(mesa != null ? mesa.getNumero() : null)
-                .idUsuario(usuario.getIdUsuario())
-                .nombreUsuario(usuario.getNombre())
-                .fechaHora(LocalDateTime.now())
+                .nombreCliente(cliente.getNombreCompleto())
+                .numeroMesa(mesa.getNumeroMesa())
+                .idUsuario(staff.getIdUsuario())
+                .nombreUsuario(staff.getNombreCompleto())
+                .fecha(LocalDateTime.now())
                 .estado(EstadoPedido.PENDIENTE.name())
-                .tipoPedido(requestDTO.getTipoPedido().toUpperCase())
-                .total(total)
+                .subtotal(subtotalPedido)
                 .observaciones(requestDTO.getObservaciones())
                 .build();
 
@@ -177,14 +176,14 @@ public class PedidoServiceImpl implements PedidoService {
         if (clienteId != null) {
             pedidos = pedidoRepository.findByCliente(clienteId);
         } else if (estado != null && !estado.isBlank()) {
-            pedidos = pedidoRepository.findByEstado(estado);
+            pedidos = pedidoRepository.findByEstado(estado.trim());
         } else {
             pedidos = pedidoRepository.findAll();
         }
 
         if (clienteId != null && estado != null && !estado.isBlank()) {
             pedidos = pedidos.stream()
-                    .filter(p -> p.getEstado() != null && p.getEstado().equalsIgnoreCase(estado))
+                    .filter(p -> p.getEstado() != null && p.getEstado().equalsIgnoreCase(estado.trim()))
                     .toList();
         }
 
@@ -203,18 +202,39 @@ public class PedidoServiceImpl implements PedidoService {
                     nuevoEstado));
         }
 
-        if (EstadoPedido.CANCELADO.name().equalsIgnoreCase(pedido.getEstado()) ||
-                EstadoPedido.PAGADO.name().equalsIgnoreCase(pedido.getEstado())) {
-            throw new IllegalStateException(String.format(
-                    "No se puede modificar el estado de un pedido que ya se encuentra en estado terminal '%s'",
-                    pedido.getEstado()));
+        String estadoActual = pedido.getEstado() != null ? pedido.getEstado().trim().toUpperCase() : "PENDIENTE";
+        String estadoDestino = nuevoEstado.trim().toUpperCase();
+
+        validarTransicionUnidireccional(estadoActual, estadoDestino);
+
+        pedidoRepository.updateEstado(id, estadoDestino);
+        pedido.setEstado(estadoDestino);
+
+        if (EstadoPedido.CANCELADO.name().equals(estadoDestino) && pedido.getNumeroMesa() != null) {
+            mesaRepository.updateEstado(pedido.getNumeroMesa(), "DISPONIBLE");
         }
 
-        String estadoUpper = nuevoEstado.trim().toUpperCase();
-        pedidoRepository.updateEstado(id, estadoUpper);
-        pedido.setEstado(estadoUpper);
-
         return pedidoMapper.toResponseDTO(pedido);
+    }
+
+    private void validarTransicionUnidireccional(String estadoActual, String estadoDestino) {
+        if (estadoActual.equals(estadoDestino)) {
+            throw new IllegalArgumentException(String.format(
+                    "El pedido ya se encuentra en el estado '%s'", estadoActual));
+        }
+
+        boolean transicionValida = switch (estadoActual) {
+            case "PENDIENTE" -> "EN_PREPARACION".equals(estadoDestino) || "CANCELADO".equals(estadoDestino);
+            case "EN_PREPARACION" -> "ENTREGADO".equals(estadoDestino);
+            case "ENTREGADO" -> "PAGADO".equals(estadoDestino);
+            default -> false;
+        };
+
+        if (!transicionValida) {
+            throw new IllegalArgumentException(String.format(
+                    "Transición de estado no permitida: no se puede pasar de '%s' a '%s'. El flujo es estrictamente unidireccional (PENDIENTE -> EN_PREPARACION -> ENTREGADO -> PAGADO).",
+                    estadoActual, estadoDestino));
+        }
     }
 
     @Override

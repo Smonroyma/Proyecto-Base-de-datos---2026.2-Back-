@@ -12,6 +12,7 @@ import java.util.List;
 /**
  * Entidad de dominio Pedido.
  * Mapea directamente la tabla de base de datos 'pedido' sin anotaciones JPA.
+ * Regla V2: Prohibido pedidos para llevar; todo pedido exige obligatoriamente numeroMesa y maneja subtotal.
  */
 @Data
 @Builder
@@ -22,14 +23,12 @@ public class Pedido {
     private Long idPedido;
     private Long idCliente;
     private String nombreCliente;
-    private Long idMesa;
     private Integer numeroMesa;
     private Long idUsuario;
     private String nombreUsuario;
-    private LocalDateTime fechaHora;
+    private LocalDateTime fecha;
     private String estado;
-    private String tipoPedido;
-    private Double total;
+    private Double subtotal;
     private String observaciones;
 
     @Builder.Default

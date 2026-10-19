@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
 
 /**
  * Entidad de dominio Cliente.
- * Mapea directamente la tabla de base de datos sin anotaciones JPA.
+ * Mapea directamente la tabla cliente de la base de datos sin anotaciones JPA.
+ * Regla de negocio: El cliente no tiene cuenta ni contraseña y siempre se guarda permanentemente en la BD.
  */
 @Data
 @Builder
@@ -18,9 +19,17 @@ import java.time.LocalDateTime;
 public class Cliente {
 
     private Long idCliente;
-    private String nombre;
+    private String nombres;
+    private String apellidos;
+    private String correo;
     private String telefono;
-    private String email;
     private LocalDateTime fechaRegistro;
+
+    public String getNombreCompleto() {
+        if (apellidos == null || apellidos.isBlank()) {
+            return nombres != null ? nombres : "";
+        }
+        return (nombres != null ? nombres : "") + " " + apellidos;
+    }
 
 }

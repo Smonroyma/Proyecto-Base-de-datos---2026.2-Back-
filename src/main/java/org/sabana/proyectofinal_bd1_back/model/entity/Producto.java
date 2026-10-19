@@ -19,10 +19,9 @@ public class Producto {
     private String nombre;
     private String descripcion;
     private Double precio;
-    private Long idCategoria;
-    private String nombreCategoria;
-    private String imagenUrl;
-    private Boolean disponible;
+    private Boolean disponibilidad;
     private Integer stock;
+    private String imagenUrl;
+    private String nombreCategoria;
 
 }

@@ -27,9 +27,9 @@ public class MesaServiceImpl implements MesaService {
     }
 
     @Override
-    public MesaResponseDTO buscarPorId(Long id) {
-        Mesa mesa = mesaRepository.findById(id)
-                .orElseThrow(() -> new MesaNotFoundException(id));
+    public MesaResponseDTO buscarPorNumero(Integer numeroMesa) {
+        Mesa mesa = mesaRepository.findByNumeroMesa(numeroMesa)
+                .orElseThrow(() -> new MesaNotFoundException(numeroMesa));
         return mesaMapper.toResponseDTO(mesa);
     }
 
@@ -46,21 +46,12 @@ public class MesaServiceImpl implements MesaService {
     }
 
     @Override
-    public MesaResponseDTO buscarPorNumero(Integer numero) {
-        Mesa mesa = mesaRepository.findByNumero(numero)
-                .orElseThrow(() -> new MesaNotFoundException(
-                        String.format("No se encontró la mesa con el número: %d", numero)
-                ));
-        return mesaMapper.toResponseDTO(mesa);
-    }
-
-    @Override
     public MesaResponseDTO crear(MesaRequestDTO requestDTO) {
         validarEstado(requestDTO.getEstado());
 
-        if (mesaRepository.existsByNumero(requestDTO.getNumero())) {
+        if (mesaRepository.existsByNumeroMesa(requestDTO.getNumeroMesa())) {
             throw new MesaAlreadyExistsException(
-                    String.format("Ya existe una mesa registrada con el número: %d", requestDTO.getNumero())
+                    String.format("Ya existe una mesa registrada con el número: %d", requestDTO.getNumeroMesa())
             );
         }
 
@@ -72,32 +63,38 @@ public class MesaServiceImpl implements MesaService {
     }
 
     @Override
-    public MesaResponseDTO actualizar(Long id, MesaRequestDTO requestDTO) {
-        Mesa mesaExistente = mesaRepository.findById(id)
-                .orElseThrow(() -> new MesaNotFoundException(id));
+    public MesaResponseDTO actualizar(Integer numeroMesa, MesaRequestDTO requestDTO) {
+        Mesa mesaExistente = mesaRepository.findByNumeroMesa(numeroMesa)
+                .orElseThrow(() -> new MesaNotFoundException(numeroMesa));
 
         validarEstado(requestDTO.getEstado());
 
-        if (mesaRepository.existsByNumeroAndNotId(requestDTO.getNumero(), id)) {
-            throw new MesaAlreadyExistsException(
-                    String.format("Ya existe otra mesa registrada con el número: %d", requestDTO.getNumero())
-            );
-        }
-
-        mesaMapper.updateEntityFromDTO(requestDTO, mesaExistente);
-        mesaExistente.setIdMesa(id);
+        mesaExistente.setCapacidad(requestDTO.getCapacidad());
         mesaExistente.setEstado(requestDTO.getEstado().toUpperCase().trim());
+        mesaExistente.setNumeroMesa(numeroMesa);
 
         Mesa mesaActualizada = mesaRepository.update(mesaExistente);
         return mesaMapper.toResponseDTO(mesaActualizada);
     }
 
     @Override
-    public void eliminar(Long id) {
-        if (mesaRepository.findById(id).isEmpty()) {
-            throw new MesaNotFoundException(id);
+    public MesaResponseDTO actualizarEstado(Integer numeroMesa, String nuevoEstado) {
+        Mesa mesaExistente = mesaRepository.findByNumeroMesa(numeroMesa)
+                .orElseThrow(() -> new MesaNotFoundException(numeroMesa));
+
+        validarEstado(nuevoEstado);
+        String estadoNormalizado = nuevoEstado.toUpperCase().trim();
+        mesaRepository.updateEstado(numeroMesa, estadoNormalizado);
+        mesaExistente.setEstado(estadoNormalizado);
+        return mesaMapper.toResponseDTO(mesaExistente);
+    }
+
+    @Override
+    public void eliminar(Integer numeroMesa) {
+        if (mesaRepository.findByNumeroMesa(numeroMesa).isEmpty()) {
+            throw new MesaNotFoundException(numeroMesa);
         }
-        mesaRepository.deleteById(id);
+        mesaRepository.deleteByNumeroMesa(numeroMesa);
     }
 
     private void validarEstado(String estado) {

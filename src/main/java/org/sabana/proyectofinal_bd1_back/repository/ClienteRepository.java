@@ -20,16 +20,22 @@ public interface ClienteRepository {
 
     boolean deleteById(Long id);
 
-    boolean existsByEmail(String email);
+    boolean existsByCorreo(String correo);
 
     boolean existsByTelefono(String telefono);
 
-    boolean existsByEmailAndNotId(String email, Long id);
+    boolean existsByCorreoAndNotId(String correo, Long id);
 
     boolean existsByTelefonoAndNotId(String telefono, Long id);
 
-    Optional<Cliente> findByEmail(String email);
+    Optional<Cliente> findByCorreo(String correo);
 
     Optional<Cliente> findByTelefono(String telefono);
+
+    boolean hasActiveReservas(Long idCliente);
+
+    boolean hasPedidosOrFacturas(Long idCliente);
+
+    int deleteHistoricalReservasByClienteId(Long idCliente);
 
 }

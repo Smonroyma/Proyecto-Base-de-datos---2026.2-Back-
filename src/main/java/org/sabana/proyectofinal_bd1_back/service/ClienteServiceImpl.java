@@ -8,12 +8,15 @@ import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteAlreadyExistsException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * Implementación de la lógica de negocio para la gestión de clientes.
+ * Regla crítica: Los clientes siempre se guardan permanentemente en la BD y solo se eliminan
+ * cuando el Administrador invoca explícitamente el endpoint de eliminación.
  */
 @Service
 public class ClienteServiceImpl implements ClienteService {
@@ -41,9 +44,9 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     public ClienteResponseDTO crear(ClienteRequestDTO requestDTO) {
-        if (clienteRepository.existsByEmail(requestDTO.getEmail())) {
+        if (clienteRepository.existsByCorreo(requestDTO.getCorreo())) {
             throw new ClienteAlreadyExistsException(
-                    String.format("Ya existe un cliente registrado con el correo: %s", requestDTO.getEmail())
+                    String.format("Ya existe un cliente registrado con el correo: %s", requestDTO.getCorreo())
             );
         }
 
@@ -65,9 +68,9 @@ public class ClienteServiceImpl implements ClienteService {
         Cliente clienteExistente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ClienteNotFoundException(id));
 
-        if (clienteRepository.existsByEmailAndNotId(requestDTO.getEmail(), id)) {
+        if (clienteRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), id)) {
             throw new ClienteAlreadyExistsException(
-                    String.format("Ya existe otro cliente registrado con el correo: %s", requestDTO.getEmail())
+                    String.format("Ya existe otro cliente registrado con el correo: %s", requestDTO.getCorreo())
             );
         }
 
@@ -85,10 +88,25 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         if (clienteRepository.findById(id).isEmpty()) {
             throw new ClienteNotFoundException(id);
         }
+
+        if (clienteRepository.hasActiveReservas(id)) {
+            throw new IllegalStateException(
+                    String.format("No se puede eliminar el cliente con ID %d porque tiene reservas activas (PENDIENTE o CONFIRMADA)", id)
+            );
+        }
+
+        if (clienteRepository.hasPedidosOrFacturas(id)) {
+            throw new IllegalStateException(
+                    String.format("No se puede eliminar el cliente con ID %d porque posee historial de pedidos o facturas contables asociadas", id)
+            );
+        }
+
+        clienteRepository.deleteHistoricalReservasByClienteId(id);
         clienteRepository.deleteById(id);
     }
 

@@ -103,13 +103,6 @@ public class EmailTemplateBuilder {
 
     /**
      * Plantilla 2: Notificación general de eventos (Creaciones, Actualizaciones, Cancelaciones).
-     * Sirve para Reservas, Cuentas de Usuario/Cliente, Estados de Pedidos, etc.
-     *
-     * @param tituloEncabezado Subtítulo en el header (ej: "Confirmación de Reserva", "Gestión de Cuenta")
-     * @param nombreDestinatario Nombre de quien recibe
-     * @param mensajePrincipal Texto introductorio
-     * @param detalles Clave-Valor con los datos relevantes (ej: "Mesa": "Mesa 4", "Fecha": "2026-10-18 19:00")
-     * @param notaPie Advertencia o aclaración adicional
      */
     public String buildNotificacionGeneralTemplate(String tituloEncabezado,
                                                    String nombreDestinatario,
@@ -217,8 +210,7 @@ public class EmailTemplateBuilder {
     }
 
     /**
-     * Plantilla 3: Comprobante y Factura Electrónica.
-     * Muestra número fiscal, cliente, cajero, desglose de montos y métodos de pago aplicados.
+     * Plantilla 3: Comprobante y Factura Electrónica (V2 con IVA 19% y sin descuento).
      */
     public String buildFacturaEmailTemplate(FacturaResponseDTO factura) {
         StringBuilder filasPagos = new StringBuilder();
@@ -227,6 +219,9 @@ public class EmailTemplateBuilder {
                 String referencia = (pago.getReferenciaTransaccion() != null && !pago.getReferenciaTransaccion().isBlank())
                         ? " (Ref: " + pago.getReferenciaTransaccion() + ")"
                         : "";
+                String etiquetaMetodo = pago.getNombreMetodoPago() != null
+                        ? pago.getNombreMetodoPago()
+                        : pago.getTipoMetodoPago();
                 filasPagos.append("""
                     <tr>
                       <td style="padding:6px 0; font-size:13px; color:#7F5539;">
@@ -236,12 +231,12 @@ public class EmailTemplateBuilder {
                         $%,.2f
                       </td>
                     </tr>
-                """.formatted(pago.getNombreMetodoPago(), referencia, pago.getMonto()));
+                """.formatted(etiquetaMetodo, referencia, pago.getTotal() != null ? pago.getTotal() : 0.0));
             }
         }
 
-        String fechaStr = (factura.getFechaEmision() != null)
-                ? factura.getFechaEmision().toString().replace("T", " ")
+        String fechaStr = (factura.getFecha() != null)
+                ? factura.getFecha().toString().replace("T", " ")
                 : "Reciente";
 
         return """
@@ -291,7 +286,7 @@ public class EmailTemplateBuilder {
                           <tr>
                             <td style="font-size:13px; color:#432818; line-height:1.6;">
                               <strong>Cliente:</strong> %s<br>
-                              <strong>Identificación:</strong> %s
+                              <strong>Contacto:</strong> %s
                             </td>
                             <td align="right" style="font-size:13px; color:#432818; line-height:1.6;">
                               <strong>Atendido por:</strong> %s<br>
@@ -307,16 +302,12 @@ public class EmailTemplateBuilder {
                             <td align="right" style="padding:6px 0; font-size:14px; color:#432818;">$%,.2f</td>
                           </tr>
                           <tr>
-                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Impuesto (8%%):</td>
+                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Impuesto IVA (19%%):</td>
                             <td align="right" style="padding:6px 0; font-size:14px; color:#432818;">$%,.2f</td>
                           </tr>
                           <tr>
                             <td style="padding:6px 0; font-size:14px; color:#7F5539;">Propina voluntaria:</td>
                             <td align="right" style="padding:6px 0; font-size:14px; color:#432818;">$%,.2f</td>
-                          </tr>
-                          <tr>
-                            <td style="padding:6px 0; font-size:14px; color:#7F5539;">Descuento:</td>
-                            <td align="right" style="padding:6px 0; font-size:14px; color:#9C6644;">-$%,.2f</td>
                           </tr>
                           <tr>
                             <td colspan="2" style="border-top:2px solid #E6CCB2; padding-top:10px; margin-top:6px;"></td>
@@ -359,17 +350,16 @@ public class EmailTemplateBuilder {
                 </body>
                 </html>
             """.formatted(
-                factura.getNumeroFactura() != null ? factura.getNumeroFactura() : "S/N",
-                factura.getNumeroFactura() != null ? factura.getNumeroFactura() : "S/N",
+                factura.getNumFactura() != null ? factura.getNumFactura() : "S/N",
+                factura.getNumFactura() != null ? factura.getNumFactura() : "S/N",
                 fechaStr,
                 factura.getNombreCliente() != null ? factura.getNombreCliente() : "Consumidor Final",
-                factura.getIdentificacionCliente() != null ? factura.getIdentificacionCliente() : "N/A",
+                factura.getTelefonoCliente() != null ? factura.getTelefonoCliente() : "N/A",
                 factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "Personal en turno",
                 factura.getIdPedido() != null ? factura.getIdPedido() : 0,
                 factura.getSubtotal() != null ? factura.getSubtotal() : 0.0,
                 factura.getImpuesto() != null ? factura.getImpuesto() : 0.0,
                 factura.getPropina() != null ? factura.getPropina() : 0.0,
-                factura.getDescuento() != null ? factura.getDescuento() : 0.0,
                 factura.getTotal() != null ? factura.getTotal() : 0.0,
                 filasPagos.toString()
         );

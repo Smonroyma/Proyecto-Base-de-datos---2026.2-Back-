@@ -19,7 +19,9 @@ public interface ReservaRepository {
 
     List<Reserva> findByCliente(Long idCliente);
 
-    List<Reserva> findByMesa(Long idMesa);
+    List<Reserva> findByClienteCorreo(String correo);
+
+    List<Reserva> findByMesa(Integer numeroMesa);
 
     List<Reserva> findByEstado(String estado);
 
@@ -31,6 +33,6 @@ public interface ReservaRepository {
 
     boolean deleteById(Long id);
 
-    boolean existsOverlappingReserva(Long idMesa, LocalDateTime fechaHora, Long excludeReservaId);
+    boolean existsOverlappingReserva(Integer numeroMesa, LocalDateTime fechaHora, Long excludeReservaId);
 
 }

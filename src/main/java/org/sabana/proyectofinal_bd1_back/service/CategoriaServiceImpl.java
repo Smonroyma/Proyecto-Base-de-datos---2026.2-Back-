@@ -26,10 +26,10 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    public List<CategoriaResponseDTO> obtenerCategorias(Boolean soloActivas) {
+    public List<CategoriaResponseDTO> obtenerCategorias(String estado) {
         List<Categoria> categorias;
-        if (Boolean.TRUE.equals(soloActivas)) {
-            categorias = categoriaRepository.findAllActivas();
+        if (estado != null && !estado.isBlank()) {
+            categorias = categoriaRepository.findByEstado(estado.toUpperCase().trim());
         } else {
             categorias = categoriaRepository.findAll();
         }
@@ -37,23 +37,26 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    public CategoriaResponseDTO buscarPorId(Long id) {
-        Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new CategoriaNotFoundException(id));
+    public CategoriaResponseDTO buscarPorNombre(String nombreCategoria) {
+        Categoria categoria = categoriaRepository.findByNombreCategoria(nombreCategoria)
+                .orElseThrow(() -> new CategoriaNotFoundException(
+                        String.format("No se encontró la categoría: %s", nombreCategoria)
+                ));
         return categoriaMapper.toResponseDTO(categoria);
     }
 
     @Override
     public CategoriaResponseDTO crear(CategoriaRequestDTO requestDTO) {
-        String trimmedNombre = requestDTO.getNombre().trim();
+        String trimmedNombre = requestDTO.getNombreCategoria().trim();
 
-        if (categoriaRepository.existsByNombre(trimmedNombre)) {
+        if (categoriaRepository.existsByNombreCategoria(trimmedNombre)) {
             throw new CategoriaAlreadyExistsException(
                     String.format("Ya existe una categoría registrada con el nombre: '%s'", trimmedNombre));
         }
 
         Categoria categoria = categoriaMapper.toEntity(requestDTO);
-        categoria.setNombre(trimmedNombre);
+        categoria.setNombreCategoria(trimmedNombre);
+        categoria.setEstado(requestDTO.getEstado() != null ? requestDTO.getEstado().toUpperCase().trim() : "ACTIVA");
         if (categoria.getDescripcion() != null) {
             categoria.setDescripcion(categoria.getDescripcion().trim());
         }
@@ -63,34 +66,40 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    public CategoriaResponseDTO actualizar(Long id, CategoriaRequestDTO requestDTO) {
-        Categoria categoriaExistente = categoriaRepository.findById(id)
-                .orElseThrow(() -> new CategoriaNotFoundException(id));
+    public CategoriaResponseDTO actualizar(String nombreCategoria, CategoriaRequestDTO requestDTO) {
+        Categoria categoriaExistente = categoriaRepository.findByNombreCategoria(nombreCategoria)
+                .orElseThrow(() -> new CategoriaNotFoundException(
+                        String.format("No se encontró la categoría: %s", nombreCategoria)
+                ));
 
-        String trimmedNombre = requestDTO.getNombre().trim();
+        String nuevoNombre = requestDTO.getNombreCategoria().trim();
 
-        if (categoriaRepository.existsByNombreAndNotId(trimmedNombre, id)) {
+        if (!categoriaExistente.getNombreCategoria().equalsIgnoreCase(nuevoNombre)
+                && categoriaRepository.existsByNombreCategoria(nuevoNombre)) {
             throw new CategoriaAlreadyExistsException(
-                    String.format("Ya existe otra categoría registrada con el nombre: '%s'", trimmedNombre));
+                    String.format("Ya existe otra categoría registrada con el nombre: '%s'", nuevoNombre));
         }
 
+        String nombreOriginal = categoriaExistente.getNombreCategoria();
         categoriaMapper.updateEntityFromDTO(requestDTO, categoriaExistente);
-        categoriaExistente.setIdCategoria(id);
-        categoriaExistente.setNombre(trimmedNombre);
+        categoriaExistente.setNombreCategoria(nuevoNombre);
+        categoriaExistente.setEstado(requestDTO.getEstado() != null ? requestDTO.getEstado().toUpperCase().trim() : "ACTIVA");
         if (categoriaExistente.getDescripcion() != null) {
             categoriaExistente.setDescripcion(categoriaExistente.getDescripcion().trim());
         }
 
-        Categoria actualizada = categoriaRepository.update(categoriaExistente);
+        Categoria actualizada = categoriaRepository.update(nombreOriginal, categoriaExistente);
         return categoriaMapper.toResponseDTO(actualizada);
     }
 
     @Override
-    public void eliminar(Long id) {
-        if (categoriaRepository.findById(id).isEmpty()) {
-            throw new CategoriaNotFoundException(id);
+    public void eliminar(String nombreCategoria) {
+        if (categoriaRepository.findByNombreCategoria(nombreCategoria).isEmpty()) {
+            throw new CategoriaNotFoundException(
+                    String.format("No se encontró la categoría: %s", nombreCategoria)
+            );
         }
-        categoriaRepository.deleteById(id);
+        categoriaRepository.deleteByNombreCategoria(nombreCategoria);
     }
 
 }

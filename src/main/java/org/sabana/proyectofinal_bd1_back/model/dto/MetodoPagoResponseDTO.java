@@ -16,11 +16,8 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Respuesta con la información de un método de pago")
 public class MetodoPagoResponseDTO {
 
-    @Schema(description = "Identificador único del método de pago", example = "1")
-    private Long idMetodoPago;
-
-    @Schema(description = "Código único del método de pago", example = "EFECTIVO")
-    private String codigo;
+    @Schema(description = "Tipo único del método de pago (PK)", example = "EFECTIVO")
+    private String tipo;
 
     @Schema(description = "Nombre visible del método de pago", example = "Efectivo")
     private String nombre;

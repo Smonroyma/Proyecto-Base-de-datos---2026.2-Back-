@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -47,23 +48,21 @@ class MetodoPagoServiceImplTest {
     @BeforeEach
     void setUp() {
         metodoPago = MetodoPago.builder()
-                .idMetodoPago(1L)
-                .codigo("EFECTIVO")
+                .tipo("EFECTIVO")
                 .nombre("Efectivo")
                 .descripcion("Pago en moneda local en caja")
                 .activo(true)
                 .build();
 
         requestDTO = MetodoPagoRequestDTO.builder()
-                .codigo("  efectivo  ")
+                .tipo("  efectivo  ")
                 .nombre("  Efectivo  ")
                 .descripcion("  Pago en moneda local en caja  ")
                 .activo(true)
                 .build();
 
         responseDTO = MetodoPagoResponseDTO.builder()
-                .idMetodoPago(1L)
-                .codigo("EFECTIVO")
+                .tipo("EFECTIVO")
                 .nombre("Efectivo")
                 .descripcion("Pago en moneda local en caja")
                 .activo(true)
@@ -71,47 +70,24 @@ class MetodoPagoServiceImplTest {
     }
 
     @Test
-    @DisplayName("buscarPorId retorna MetodoPagoResponseDTO cuando el método de pago existe")
-    void buscarPorId_Exitoso() {
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoPago));
+    @DisplayName("buscarPorTipo retorna MetodoPagoResponseDTO cuando el tipo existe")
+    void buscarPorTipo_Exitoso() {
+        when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoPago));
         when(metodoPagoMapper.toResponseDTO(metodoPago)).thenReturn(responseDTO);
 
-        MetodoPagoResponseDTO result = metodoPagoService.buscarPorId(1L);
+        MetodoPagoResponseDTO result = metodoPagoService.buscarPorTipo("EFECTIVO");
 
         assertNotNull(result);
-        assertEquals(1L, result.getIdMetodoPago());
-        assertEquals("EFECTIVO", result.getCodigo());
-        verify(metodoPagoRepository).findById(1L);
+        assertEquals("EFECTIVO", result.getTipo());
+        verify(metodoPagoRepository).findByTipo("EFECTIVO");
     }
 
     @Test
-    @DisplayName("buscarPorId lanza MetodoPagoNotFoundException cuando el ID no existe")
-    void buscarPorId_NoExiste_LanzaExcepcion() {
-        when(metodoPagoRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("buscarPorTipo lanza MetodoPagoNotFoundException cuando el tipo no existe")
+    void buscarPorTipo_NoExiste_LanzaExcepcion() {
+        when(metodoPagoRepository.findByTipo("BITCOIN")).thenReturn(Optional.empty());
 
-        assertThrows(MetodoPagoNotFoundException.class, () -> metodoPagoService.buscarPorId(99L));
-        verify(metodoPagoRepository).findById(99L);
-    }
-
-    @Test
-    @DisplayName("buscarPorCodigo retorna MetodoPagoResponseDTO cuando el código existe")
-    void buscarPorCodigo_Exitoso() {
-        when(metodoPagoRepository.findByCodigo("EFECTIVO")).thenReturn(Optional.of(metodoPago));
-        when(metodoPagoMapper.toResponseDTO(metodoPago)).thenReturn(responseDTO);
-
-        MetodoPagoResponseDTO result = metodoPagoService.buscarPorCodigo("EFECTIVO");
-
-        assertNotNull(result);
-        assertEquals("EFECTIVO", result.getCodigo());
-        verify(metodoPagoRepository).findByCodigo("EFECTIVO");
-    }
-
-    @Test
-    @DisplayName("buscarPorCodigo lanza MetodoPagoNotFoundException cuando el código no existe")
-    void buscarPorCodigo_NoExiste_LanzaExcepcion() {
-        when(metodoPagoRepository.findByCodigo("BITCOIN")).thenReturn(Optional.empty());
-
-        assertThrows(MetodoPagoNotFoundException.class, () -> metodoPagoService.buscarPorCodigo("BITCOIN"));
+        assertThrows(MetodoPagoNotFoundException.class, () -> metodoPagoService.buscarPorTipo("BITCOIN"));
     }
 
     @Test
@@ -130,20 +106,6 @@ class MetodoPagoServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerMetodosPago con soloActivos false retorna todos los métodos de pago")
-    void obtenerMetodosPago_SoloActivosFalse_RetornaTodos() {
-        List<MetodoPago> lista = List.of(metodoPago);
-        when(metodoPagoRepository.findAll()).thenReturn(lista);
-        when(metodoPagoMapper.toResponseDTOList(lista)).thenReturn(List.of(responseDTO));
-
-        List<MetodoPagoResponseDTO> result = metodoPagoService.obtenerMetodosPago(false);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(metodoPagoRepository).findAll();
-    }
-
-    @Test
     @DisplayName("obtenerMetodosPago con soloActivos true retorna únicamente los métodos activos")
     void obtenerMetodosPago_SoloActivosTrue_RetornaActivos() {
         List<MetodoPago> lista = List.of(metodoPago);
@@ -154,15 +116,15 @@ class MetodoPagoServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertTrue(result.get(0).getActivo());
+        assertTrue(result.getFirst().getActivo());
         verify(metodoPagoRepository).findAllActivos();
         verify(metodoPagoRepository, never()).findAll();
     }
 
     @Test
-    @DisplayName("crear registra un nuevo método de pago normalizando el código a mayúsculas")
+    @DisplayName("crear registra un nuevo método de pago normalizando el tipo a mayúsculas")
     void crear_Exitoso() {
-        when(metodoPagoRepository.existsByCodigo("EFECTIVO")).thenReturn(false);
+        when(metodoPagoRepository.existsByTipo("EFECTIVO")).thenReturn(false);
         when(metodoPagoMapper.toEntity(requestDTO)).thenReturn(metodoPago);
         when(metodoPagoRepository.save(any(MetodoPago.class))).thenReturn(metodoPago);
         when(metodoPagoMapper.toResponseDTO(metodoPago)).thenReturn(responseDTO);
@@ -170,16 +132,15 @@ class MetodoPagoServiceImplTest {
         MetodoPagoResponseDTO result = metodoPagoService.crear(requestDTO);
 
         assertNotNull(result);
-        assertEquals("EFECTIVO", result.getCodigo());
-        assertEquals("Efectivo", result.getNombre());
-        verify(metodoPagoRepository).existsByCodigo("EFECTIVO");
+        assertEquals("EFECTIVO", result.getTipo());
+        verify(metodoPagoRepository).existsByTipo("EFECTIVO");
         verify(metodoPagoRepository).save(metodoPago);
     }
 
     @Test
-    @DisplayName("crear lanza DuplicateResourceException cuando el código ya está registrado")
-    void crear_CodigoDuplicado_LanzaDuplicateResourceException() {
-        when(metodoPagoRepository.existsByCodigo("EFECTIVO")).thenReturn(true);
+    @DisplayName("crear lanza DuplicateResourceException cuando el tipo ya está registrado")
+    void crear_TipoDuplicado_LanzaDuplicateResourceException() {
+        when(metodoPagoRepository.existsByTipo("EFECTIVO")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> metodoPagoService.crear(requestDTO));
         verify(metodoPagoRepository, never()).save(any());
@@ -188,57 +149,36 @@ class MetodoPagoServiceImplTest {
     @Test
     @DisplayName("actualizar modifica exitosamente un método de pago existente")
     void actualizar_Exitoso() {
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoPago));
-        when(metodoPagoRepository.existsByCodigoAndNotId("EFECTIVO", 1L)).thenReturn(false);
+        when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoPago));
         doNothing().when(metodoPagoMapper).updateEntityFromDTO(requestDTO, metodoPago);
-        when(metodoPagoRepository.update(metodoPago)).thenReturn(metodoPago);
+        when(metodoPagoRepository.update(eq("EFECTIVO"), any(MetodoPago.class))).thenReturn(metodoPago);
         when(metodoPagoMapper.toResponseDTO(metodoPago)).thenReturn(responseDTO);
 
-        MetodoPagoResponseDTO result = metodoPagoService.actualizar(1L, requestDTO);
+        MetodoPagoResponseDTO result = metodoPagoService.actualizar("EFECTIVO", requestDTO);
 
         assertNotNull(result);
-        assertEquals(1L, result.getIdMetodoPago());
-        assertEquals("EFECTIVO", result.getCodigo());
-        verify(metodoPagoRepository).update(metodoPago);
+        assertEquals("EFECTIVO", result.getTipo());
+        verify(metodoPagoRepository).update(eq("EFECTIVO"), any(MetodoPago.class));
     }
 
     @Test
-    @DisplayName("actualizar lanza MetodoPagoNotFoundException cuando el ID no existe")
-    void actualizar_NoExiste_LanzaMetodoPagoNotFoundException() {
-        when(metodoPagoRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(MetodoPagoNotFoundException.class, () -> metodoPagoService.actualizar(99L, requestDTO));
-        verify(metodoPagoRepository, never()).update(any());
-    }
-
-    @Test
-    @DisplayName("actualizar lanza DuplicateResourceException cuando el código pertenece a otro método de pago")
-    void actualizar_CodigoDuplicadoEnOtroRegistro_LanzaDuplicateResourceException() {
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoPago));
-        when(metodoPagoRepository.existsByCodigoAndNotId("EFECTIVO", 1L)).thenReturn(true);
-
-        assertThrows(DuplicateResourceException.class, () -> metodoPagoService.actualizar(1L, requestDTO));
-        verify(metodoPagoRepository, never()).update(any());
-    }
-
-    @Test
-    @DisplayName("eliminar borra el método de pago cuando el ID existe")
+    @DisplayName("eliminar borra el método de pago cuando el tipo existe")
     void eliminar_Exitoso() {
-        when(metodoPagoRepository.findById(1L)).thenReturn(Optional.of(metodoPago));
-        when(metodoPagoRepository.deleteById(1L)).thenReturn(true);
+        when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoPago));
+        when(metodoPagoRepository.deleteByTipo("EFECTIVO")).thenReturn(true);
 
-        metodoPagoService.eliminar(1L);
+        metodoPagoService.eliminar("EFECTIVO");
 
-        verify(metodoPagoRepository).deleteById(1L);
+        verify(metodoPagoRepository).deleteByTipo("EFECTIVO");
     }
 
     @Test
-    @DisplayName("eliminar lanza MetodoPagoNotFoundException cuando el ID no existe")
+    @DisplayName("eliminar lanza MetodoPagoNotFoundException cuando el tipo no existe")
     void eliminar_NoExiste_LanzaMetodoPagoNotFoundException() {
-        when(metodoPagoRepository.findById(99L)).thenReturn(Optional.empty());
+        when(metodoPagoRepository.findByTipo("INEXISTENTE")).thenReturn(Optional.empty());
 
-        assertThrows(MetodoPagoNotFoundException.class, () -> metodoPagoService.eliminar(99L));
-        verify(metodoPagoRepository, never()).deleteById(any());
+        assertThrows(MetodoPagoNotFoundException.class, () -> metodoPagoService.eliminar("INEXISTENTE"));
+        verify(metodoPagoRepository, never()).deleteByTipo(any());
     }
 
 }

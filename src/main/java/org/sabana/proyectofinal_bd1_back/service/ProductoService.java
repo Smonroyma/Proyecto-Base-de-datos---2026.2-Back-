@@ -10,7 +10,7 @@ import java.util.List;
  */
 public interface ProductoService {
 
-    List<ProductoResponseDTO> obtenerProductos(Long categoriaId, Boolean disponible);
+    List<ProductoResponseDTO> obtenerProductos(String nombreCategoria, Boolean disponibilidad);
 
     ProductoResponseDTO buscarPorId(Long id);
 

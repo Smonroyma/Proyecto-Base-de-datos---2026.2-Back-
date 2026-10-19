@@ -16,11 +16,8 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Respuesta con los datos detallados de una mesa")
 public class MesaResponseDTO {
 
-    @Schema(description = "Identificador único de la mesa", example = "1")
-    private Long idMesa;
-
-    @Schema(description = "Número identificador visible de la mesa en el salón", example = "5")
-    private Integer numero;
+    @Schema(description = "Número identificador único de la mesa en el salón (PK)", example = "5")
+    private Integer numeroMesa;
 
     @Schema(description = "Capacidad de comensales sentados en la mesa", example = "4")
     private Integer capacidad;

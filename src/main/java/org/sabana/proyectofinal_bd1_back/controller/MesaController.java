@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controlador REST para la gestión de mesas en Savana Data Coffee.
@@ -68,28 +70,8 @@ public class MesaController {
         return ResponseEntity.ok(mesas);
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Buscar mesa por ID", description = "Retorna la información detallada de una mesa según su ID único.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Mesa encontrada exitosamente",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = MesaResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Mesa no encontrada con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
-    public ResponseEntity<MesaResponseDTO> buscarPorId(
-            @Parameter(description = "Identificador único de la mesa", example = "1", required = true)
-            @PathVariable Long id) {
-        MesaResponseDTO mesa = mesaService.buscarPorId(id);
-        return ResponseEntity.ok(mesa);
-    }
-
-    @GetMapping("/numero/{numero}")
-    @Operation(summary = "Buscar mesa por número de salón", description = "Retorna la información de una mesa dado su número visible en el salón.")
+    @GetMapping("/{numeroMesa}")
+    @Operation(summary = "Buscar mesa por número de mesa", description = "Retorna la información detallada de una mesa según su número identificador (PK).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Mesa encontrada exitosamente",
                     content = @Content(mediaType = "application/json",
@@ -102,6 +84,15 @@ public class MesaController {
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<MesaResponseDTO> buscarPorNumero(
+            @Parameter(description = "Número identificador único de la mesa", example = "1", required = true)
+            @PathVariable Integer numeroMesa) {
+        MesaResponseDTO mesa = mesaService.buscarPorNumero(numeroMesa);
+        return ResponseEntity.ok(mesa);
+    }
+
+    @GetMapping("/numero/{numero}")
+    @Operation(summary = "Buscar mesa por número de salón", description = "Retorna la información de una mesa dado su número visible en el salón.")
+    public ResponseEntity<MesaResponseDTO> buscarPorNumeroAlias(
             @Parameter(description = "Número visible de la mesa en el salón", example = "5", required = true)
             @PathVariable Integer numero) {
         MesaResponseDTO mesa = mesaService.buscarPorNumero(numero);
@@ -130,8 +121,8 @@ public class MesaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(mesaCreada);
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Actualizar mesa existente", description = "Actualiza el número, capacidad o estado de una mesa validando la unicidad del número.")
+    @PutMapping("/{numeroMesa}")
+    @Operation(summary = "Actualizar mesa existente", description = "Actualiza la capacidad o estado de una mesa existente.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Mesa actualizada exitosamente",
                     content = @Content(mediaType = "application/json",
@@ -139,39 +130,46 @@ public class MesaController {
             @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o estado no reconocido",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Mesa no encontrada con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "409", description = "Conflicto: ya existe otra mesa con ese número",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
+            @ApiResponse(responseCode = "404", description = "Mesa no encontrada con el número especificado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<MesaResponseDTO> actualizar(
-            @Parameter(description = "Identificador único de la mesa a actualizar", example = "1", required = true)
-            @PathVariable Long id,
+            @Parameter(description = "Número identificador de la mesa a actualizar", example = "1", required = true)
+            @PathVariable Integer numeroMesa,
             @Valid @RequestBody MesaRequestDTO requestDTO) {
-        MesaResponseDTO mesaActualizada = mesaService.actualizar(id, requestDTO);
+        MesaResponseDTO mesaActualizada = mesaService.actualizar(numeroMesa, requestDTO);
         return ResponseEntity.ok(mesaActualizada);
     }
 
-    @DeleteMapping("/{id}")
+    @PatchMapping("/{numeroMesa}/estado")
+    @Operation(summary = "Actualizar estado de mesa", description = "Permite habilitar o cambiar el estado operativo de una mesa (DISPONIBLE, OCUPADA, RESERVADA, EN_MANTENIMIENTO).")
+    public ResponseEntity<MesaResponseDTO> actualizarEstado(
+            @PathVariable Integer numeroMesa,
+            @RequestParam(name = "estado", required = false) String estadoParam,
+            @RequestBody(required = false) Map<String, String> body) {
+        String nuevoEstado = estadoParam;
+        if ((nuevoEstado == null || nuevoEstado.isBlank()) && body != null) {
+            nuevoEstado = body.getOrDefault("estado", body.get("nuevoEstado"));
+        }
+        if (nuevoEstado == null || nuevoEstado.isBlank()) {
+            throw new IllegalArgumentException("El nuevo estado de la mesa es obligatorio");
+        }
+        return ResponseEntity.ok(mesaService.actualizarEstado(numeroMesa, nuevoEstado));
+    }
+
+    @DeleteMapping("/{numeroMesa}")
     @Operation(summary = "Eliminar mesa", description = "Elimina permanentemente una mesa del sistema dada su clave primaria.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Mesa eliminada exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Mesa no encontrada con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
+            @ApiResponse(responseCode = "404", description = "Mesa no encontrada con el número especificado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<Void> eliminar(
-            @Parameter(description = "Identificador único de la mesa a eliminar", example = "1", required = true)
-            @PathVariable Long id) {
-        mesaService.eliminar(id);
+            @Parameter(description = "Número identificador único de la mesa a eliminar", example = "1", required = true)
+            @PathVariable Integer numeroMesa) {
+        mesaService.eliminar(numeroMesa);
         return ResponseEntity.noContent().build();
     }
 

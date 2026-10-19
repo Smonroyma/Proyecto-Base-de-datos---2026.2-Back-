@@ -37,33 +37,30 @@ public class MetodoPagoServiceImpl implements MetodoPagoService {
     }
 
     @Override
-    public MetodoPagoResponseDTO buscarPorId(Long id) {
-        MetodoPago metodoPago = metodoPagoRepository.findById(id)
-                .orElseThrow(() -> new MetodoPagoNotFoundException(id));
-        return metodoPagoMapper.toResponseDTO(metodoPago);
-    }
-
-    @Override
-    public MetodoPagoResponseDTO buscarPorCodigo(String codigo) {
-        MetodoPago metodoPago = metodoPagoRepository.findByCodigo(codigo)
+    public MetodoPagoResponseDTO buscarPorTipo(String tipo) {
+        MetodoPago metodoPago = metodoPagoRepository.findByTipo(tipo)
                 .orElseThrow(() -> new MetodoPagoNotFoundException(
-                        String.format("No se encontró el método de pago con código: '%s'", codigo)));
+                        String.format("No se encontró el método de pago de tipo: '%s'", tipo)));
         return metodoPagoMapper.toResponseDTO(metodoPago);
     }
 
     @Override
     public MetodoPagoResponseDTO crear(MetodoPagoRequestDTO requestDTO) {
-        String codigoNormalizado = requestDTO.getCodigo().trim().toUpperCase();
-        String nombreNormalizado = requestDTO.getNombre().trim();
+        String tipoNormalizado = requestDTO.getTipo().trim().toUpperCase();
 
-        if (metodoPagoRepository.existsByCodigo(codigoNormalizado)) {
+        if (metodoPagoRepository.existsByTipo(tipoNormalizado)) {
             throw new DuplicateResourceException(
-                    String.format("Ya existe un método de pago registrado con el código: '%s'", codigoNormalizado));
+                    String.format("Ya existe un método de pago registrado con el tipo: '%s'", tipoNormalizado));
         }
 
         MetodoPago metodoPago = metodoPagoMapper.toEntity(requestDTO);
-        metodoPago.setCodigo(codigoNormalizado);
-        metodoPago.setNombre(nombreNormalizado);
+        metodoPago.setTipo(tipoNormalizado);
+        metodoPago.setNombre(requestDTO.getNombre() != null && !requestDTO.getNombre().isBlank()
+                ? requestDTO.getNombre().trim()
+                : tipoNormalizado);
+        if (metodoPago.getActivo() == null) {
+            metodoPago.setActivo(true);
+        }
         if (metodoPago.getDescripcion() != null) {
             metodoPago.setDescripcion(metodoPago.getDescripcion().trim());
         }
@@ -73,36 +70,42 @@ public class MetodoPagoServiceImpl implements MetodoPagoService {
     }
 
     @Override
-    public MetodoPagoResponseDTO actualizar(Long id, MetodoPagoRequestDTO requestDTO) {
-        MetodoPago existente = metodoPagoRepository.findById(id)
-                .orElseThrow(() -> new MetodoPagoNotFoundException(id));
+    public MetodoPagoResponseDTO actualizar(String tipo, MetodoPagoRequestDTO requestDTO) {
+        MetodoPago existente = metodoPagoRepository.findByTipo(tipo)
+                .orElseThrow(() -> new MetodoPagoNotFoundException(
+                        String.format("No se encontró el método de pago de tipo: '%s'", tipo)));
 
-        String codigoNormalizado = requestDTO.getCodigo().trim().toUpperCase();
-        String nombreNormalizado = requestDTO.getNombre().trim();
+        String nuevoTipo = requestDTO.getTipo().trim().toUpperCase();
 
-        if (metodoPagoRepository.existsByCodigoAndNotId(codigoNormalizado, id)) {
+        if (!existente.getTipo().equalsIgnoreCase(nuevoTipo) && metodoPagoRepository.existsByTipo(nuevoTipo)) {
             throw new DuplicateResourceException(
-                    String.format("Ya existe otro método de pago registrado con el código: '%s'", codigoNormalizado));
+                    String.format("Ya existe otro método de pago registrado con el tipo: '%s'", nuevoTipo));
         }
 
+        String tipoOriginal = existente.getTipo();
         metodoPagoMapper.updateEntityFromDTO(requestDTO, existente);
-        existente.setIdMetodoPago(id);
-        existente.setCodigo(codigoNormalizado);
-        existente.setNombre(nombreNormalizado);
+        existente.setTipo(nuevoTipo);
+        existente.setNombre(requestDTO.getNombre() != null && !requestDTO.getNombre().isBlank()
+                ? requestDTO.getNombre().trim()
+                : nuevoTipo);
+        if (existente.getActivo() == null) {
+            existente.setActivo(true);
+        }
         if (existente.getDescripcion() != null) {
             existente.setDescripcion(existente.getDescripcion().trim());
         }
 
-        MetodoPago actualizado = metodoPagoRepository.update(existente);
+        MetodoPago actualizado = metodoPagoRepository.update(tipoOriginal, existente);
         return metodoPagoMapper.toResponseDTO(actualizado);
     }
 
     @Override
-    public void eliminar(Long id) {
-        if (metodoPagoRepository.findById(id).isEmpty()) {
-            throw new MetodoPagoNotFoundException(id);
+    public void eliminar(String tipo) {
+        if (metodoPagoRepository.findByTipo(tipo).isEmpty()) {
+            throw new MetodoPagoNotFoundException(
+                    String.format("No se encontró el método de pago de tipo: '%s'", tipo));
         }
-        metodoPagoRepository.deleteById(id);
+        metodoPagoRepository.deleteByTipo(tipo);
     }
 
 }

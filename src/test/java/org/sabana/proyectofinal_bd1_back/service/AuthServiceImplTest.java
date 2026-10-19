@@ -13,7 +13,8 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.Verificar2FARequestDTO;
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
+import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
 import org.sabana.proyectofinal_bd1_back.security.JwtTokenProvider;
 import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
@@ -22,6 +23,7 @@ import org.sabana.proyectofinal_bd1_back.util.exceptions.InvalidOtpException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.OtpExpiredException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -63,43 +65,43 @@ class AuthServiceImplTest {
     @InjectMocks
     private AuthServiceImpl authService;
 
-    private Usuario usuarioSin2FA;
-    private Usuario usuarioCon2FA;
+    private Administrador adminSin2FA;
+    private Empleado empleadoCon2FA;
     private UsuarioResponseDTO responseDTO;
 
     @BeforeEach
     void setUp() {
-        usuarioSin2FA = Usuario.builder()
+        adminSin2FA = Administrador.builder()
                 .idUsuario(1L)
-                .nombre("Carlos Mendoza")
-                .email("carlos@savanacoffee.com")
-                .passwordHash("hashedPassword123")
+                .nombres("Carlos")
+                .apellidos("Mendoza")
+                .correo("carlos@savanacoffee.com")
+                .contrasena("hashedPassword123")
                 .rol("ADMINISTRADOR")
-                .activo(true)
-                .dosFactoresHabilitado(false)
-                .fechaRegistro(LocalDateTime.now())
+                .dosFacHab(false)
+                .fechaInicio(LocalDate.now())
                 .build();
 
-        usuarioCon2FA = Usuario.builder()
+        empleadoCon2FA = Empleado.builder()
                 .idUsuario(2L)
-                .nombre("Mariana Barista")
-                .email("mariana@savanacoffee.com")
-                .passwordHash("hashedPassword123")
-                .rol("BARISTA")
-                .activo(true)
-                .dosFactoresHabilitado(true)
-                .codigoOtp("123456")
-                .expiracionOtp(LocalDateTime.now().plusMinutes(5))
-                .fechaRegistro(LocalDateTime.now())
+                .nombres("Mariana")
+                .apellidos("Barista")
+                .correo("mariana@savanacoffee.com")
+                .contrasena("hashedPassword123")
+                .rol("EMPLEADO")
+                .estado("ACTIVO")
+                .dosFacHab(true)
+                .fechaInicio(LocalDate.now())
                 .build();
 
         responseDTO = UsuarioResponseDTO.builder()
                 .idUsuario(1L)
-                .nombre("Carlos Mendoza")
-                .email("carlos@savanacoffee.com")
+                .nombres("Carlos")
+                .apellidos("Mendoza")
+                .correo("carlos@savanacoffee.com")
                 .rol("ADMINISTRADOR")
-                .activo(true)
-                .dosFactoresHabilitado(false)
+                .estado("ACTIVO")
+                .dosFacHab(false)
                 .build();
     }
 
@@ -108,10 +110,10 @@ class AuthServiceImplTest {
     void login_Sin2FA_ExitosoDirecto() {
         LoginRequestDTO request = new LoginRequestDTO("carlos@savanacoffee.com", "Password123*");
 
-        when(usuarioRepository.findByEmail("carlos@savanacoffee.com")).thenReturn(Optional.of(usuarioSin2FA));
+        when(usuarioRepository.findByCorreo("carlos@savanacoffee.com")).thenReturn(Optional.of(adminSin2FA));
         when(passwordEncoder.matches("Password123*", "hashedPassword123")).thenReturn(true);
-        when(usuarioMapper.toResponseDTO(usuarioSin2FA)).thenReturn(responseDTO);
-        when(jwtTokenProvider.generateToken(usuarioSin2FA)).thenReturn("mocked.jwt.token");
+        when(usuarioMapper.toResponseDTO(adminSin2FA)).thenReturn(responseDTO);
+        when(jwtTokenProvider.generateToken(adminSin2FA)).thenReturn("mocked.jwt.token");
 
         AuthResponseDTO result = authService.login(request);
 
@@ -119,25 +121,25 @@ class AuthServiceImplTest {
         assertEquals("mocked.jwt.token", result.getToken());
         assertEquals("Bearer", result.getTipoToken());
         assertFalse(result.getRequiere2FA());
-        verify(jwtTokenProvider).generateToken(usuarioSin2FA);
+        verify(jwtTokenProvider).generateToken(adminSin2FA);
         verify(emailService, never()).sendOtpEmail(anyString(), anyString(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("Login paso 1 con 2FA habilitado genera código OTP y despacha correo HTML")
+    @DisplayName("Login paso 1 con 2FA habilitado almacena OTP en memoria ConcurrentHashMap y despacha correo HTML")
     void login_Con2FA_Paso1Exitoso_GeneraYEnviaOTP() {
         LoginRequestDTO request = new LoginRequestDTO("mariana@savanacoffee.com", "Password123*");
 
-        when(usuarioRepository.findByEmail("mariana@savanacoffee.com")).thenReturn(Optional.of(usuarioCon2FA));
+        when(usuarioRepository.findByCorreo("mariana@savanacoffee.com")).thenReturn(Optional.of(empleadoCon2FA));
         when(passwordEncoder.matches("Password123*", "hashedPassword123")).thenReturn(true);
-        when(usuarioMapper.toResponseDTO(usuarioCon2FA)).thenReturn(responseDTO);
+        when(usuarioMapper.toResponseDTO(empleadoCon2FA)).thenReturn(responseDTO);
 
         AuthResponseDTO result = authService.login(request);
 
         assertNotNull(result);
         assertNull(result.getToken());
         assertTrue(result.getRequiere2FA());
-        verify(usuarioRepository).guardarCodigoOTP(eq(2L), anyString(), any(LocalDateTime.class));
+        assertNotNull(authService.obtenerOtpEnMemoria("mariana@savanacoffee.com"));
         verify(emailService).sendOtpEmail(eq("mariana@savanacoffee.com"), eq("Mariana Barista"), anyString(), eq(5));
         verify(jwtTokenProvider, never()).generateToken(any());
     }
@@ -147,7 +149,7 @@ class AuthServiceImplTest {
     void login_PasswordIncorrecto_LanzaInvalidCredentialsException() {
         LoginRequestDTO request = new LoginRequestDTO("carlos@savanacoffee.com", "WrongPassword");
 
-        when(usuarioRepository.findByEmail("carlos@savanacoffee.com")).thenReturn(Optional.of(usuarioSin2FA));
+        when(usuarioRepository.findByCorreo("carlos@savanacoffee.com")).thenReturn(Optional.of(adminSin2FA));
         when(passwordEncoder.matches("WrongPassword", "hashedPassword123")).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
@@ -155,65 +157,71 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Login con usuario inactivo lanza InvalidCredentialsException")
-    void login_UsuarioInactivo_LanzaInvalidCredentialsException() {
-        usuarioSin2FA.setActivo(false);
-        LoginRequestDTO request = new LoginRequestDTO("carlos@savanacoffee.com", "Password123*");
+    @DisplayName("Login con empleado en estado INACTIVO lanza InvalidCredentialsException")
+    void login_EmpleadoInactivo_LanzaInvalidCredentialsException() {
+        empleadoCon2FA.setEstado("INACTIVO");
+        LoginRequestDTO request = new LoginRequestDTO("mariana@savanacoffee.com", "Password123*");
 
-        when(usuarioRepository.findByEmail("carlos@savanacoffee.com")).thenReturn(Optional.of(usuarioSin2FA));
+        when(usuarioRepository.findByCorreo("mariana@savanacoffee.com")).thenReturn(Optional.of(empleadoCon2FA));
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }
 
     @Test
-    @DisplayName("Verificación 2FA con código OTP correcto y vigente emite JWT")
+    @DisplayName("Verificación 2FA con código OTP correcto y vigente en memoria emite JWT y limpia caché")
     void verificar2FA_Exitoso() {
+        authService.guardarOtpEnMemoria("mariana@savanacoffee.com", "123456", LocalDateTime.now().plusMinutes(5));
         Verificar2FARequestDTO request = new Verificar2FARequestDTO("mariana@savanacoffee.com", "123456");
 
-        when(usuarioRepository.findByEmail("mariana@savanacoffee.com")).thenReturn(Optional.of(usuarioCon2FA));
-        when(jwtTokenProvider.generateToken(usuarioCon2FA)).thenReturn("jwt.token.2fa");
-        when(usuarioMapper.toResponseDTO(usuarioCon2FA)).thenReturn(responseDTO);
+        when(usuarioRepository.findByCorreo("mariana@savanacoffee.com")).thenReturn(Optional.of(empleadoCon2FA));
+        when(jwtTokenProvider.generateToken(empleadoCon2FA)).thenReturn("jwt.token.2fa");
+        when(usuarioMapper.toResponseDTO(empleadoCon2FA)).thenReturn(responseDTO);
 
         AuthResponseDTO result = authService.verificar2FA(request);
 
         assertNotNull(result);
         assertEquals("jwt.token.2fa", result.getToken());
         assertFalse(result.getRequiere2FA());
-        verify(usuarioRepository).limpiarCodigoOTP(2L);
-        verify(jwtTokenProvider).generateToken(usuarioCon2FA);
+        assertNull(authService.obtenerOtpEnMemoria("mariana@savanacoffee.com"));
+        verify(jwtTokenProvider).generateToken(empleadoCon2FA);
     }
 
     @Test
     @DisplayName("Verificación 2FA con código OTP incorrecto lanza InvalidOtpException")
     void verificar2FA_CodigoIncorrecto_LanzaInvalidOtpException() {
+        authService.guardarOtpEnMemoria("mariana@savanacoffee.com", "123456", LocalDateTime.now().plusMinutes(5));
         Verificar2FARequestDTO request = new Verificar2FARequestDTO("mariana@savanacoffee.com", "999999");
 
-        when(usuarioRepository.findByEmail("mariana@savanacoffee.com")).thenReturn(Optional.of(usuarioCon2FA));
+        when(usuarioRepository.findByCorreo("mariana@savanacoffee.com")).thenReturn(Optional.of(empleadoCon2FA));
 
         assertThrows(InvalidOtpException.class, () -> authService.verificar2FA(request));
-        verify(usuarioRepository, never()).limpiarCodigoOTP(any());
         verify(jwtTokenProvider, never()).generateToken(any());
     }
 
     @Test
-    @DisplayName("Verificación 2FA con código OTP expirado lanza OtpExpiredException")
+    @DisplayName("Verificación 2FA con código OTP expirado en memoria lanza OtpExpiredException")
     void verificar2FA_CodigoExpirado_LanzaOtpExpiredException() {
-        usuarioCon2FA.setExpiracionOtp(LocalDateTime.now().minusMinutes(1)); // Expirado
+        authService.guardarOtpEnMemoria("mariana@savanacoffee.com", "123456", LocalDateTime.now().minusMinutes(1));
         Verificar2FARequestDTO request = new Verificar2FARequestDTO("mariana@savanacoffee.com", "123456");
 
-        when(usuarioRepository.findByEmail("mariana@savanacoffee.com")).thenReturn(Optional.of(usuarioCon2FA));
+        when(usuarioRepository.findByCorreo("mariana@savanacoffee.com")).thenReturn(Optional.of(empleadoCon2FA));
 
         assertThrows(OtpExpiredException.class, () -> authService.verificar2FA(request));
-        verify(usuarioRepository, never()).limpiarCodigoOTP(any());
+        assertNull(authService.obtenerOtpEnMemoria("mariana@savanacoffee.com"));
         verify(jwtTokenProvider, never()).generateToken(any());
     }
 
     @Test
     @DisplayName("Registro delega a UsuarioService y retorna AuthResponseDTO")
     void registrar_Exitoso() {
-        UsuarioRequestDTO request = new UsuarioRequestDTO(
-                "Carlos Mendoza", "carlos@savanacoffee.com", "Password123*", "ADMINISTRADOR", false
-        );
+        UsuarioRequestDTO request = UsuarioRequestDTO.builder()
+                .nombres("Carlos")
+                .apellidos("Mendoza")
+                .correo("carlos@savanacoffee.com")
+                .contrasena("Password123*")
+                .rol("ADMINISTRADOR")
+                .dosFacHab(false)
+                .build();
 
         when(usuarioService.crear(request)).thenReturn(responseDTO);
 

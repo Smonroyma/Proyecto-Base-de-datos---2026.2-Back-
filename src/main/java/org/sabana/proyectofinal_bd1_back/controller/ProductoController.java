@@ -44,7 +44,7 @@ public class ProductoController {
     @GetMapping
     @Operation(
             summary = "Listar productos",
-            description = "Obtiene la lista de productos del catálogo. Permite filtrar opcionalmente por ID de categoría y por disponibilidad."
+            description = "Obtiene la lista de productos del catálogo. Permite filtrar opcionalmente por nombre de categoría y por disponibilidad."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de productos obtenida exitosamente",
@@ -55,11 +55,17 @@ public class ProductoController {
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<List<ProductoResponseDTO>> obtenerProductos(
-            @Parameter(description = "Identificador opcional de la categoría para filtrar", example = "1")
-            @RequestParam(name = "categoriaId", required = false) Long categoriaId,
+            @Parameter(description = "Nombre opcional de la categoría para filtrar", example = "Bebidas Calientes")
+            @RequestParam(name = "nombreCategoria", required = false) String nombreCategoria,
+            @Parameter(description = "Alias opcional de categoría para filtrar", example = "Bebidas Calientes")
+            @RequestParam(name = "categoria", required = false) String categoriaAlias,
             @Parameter(description = "Estado de disponibilidad opcional para filtrar", example = "true")
-            @RequestParam(name = "disponible", required = false) Boolean disponible) {
-        List<ProductoResponseDTO> productos = productoService.obtenerProductos(categoriaId, disponible);
+            @RequestParam(name = "disponibilidad", required = false) Boolean disponibilidad,
+            @Parameter(description = "Alias opcional de disponibilidad para filtrar", example = "true")
+            @RequestParam(name = "disponible", required = false) Boolean disponibleAlias) {
+        String cat = (nombreCategoria != null && !nombreCategoria.isBlank()) ? nombreCategoria : categoriaAlias;
+        Boolean disp = disponibilidad != null ? disponibilidad : disponibleAlias;
+        List<ProductoResponseDTO> productos = productoService.obtenerProductos(cat, disp);
         return ResponseEntity.ok(productos);
     }
 
@@ -70,9 +76,6 @@ public class ProductoController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ProductoResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Producto no encontrado con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
@@ -100,9 +103,6 @@ public class ProductoController {
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "409", description = "Conflicto por nombre de producto ya existente",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
-                    content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<ProductoResponseDTO> crear(
@@ -128,9 +128,6 @@ public class ProductoController {
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "409", description = "Conflicto: ya existe otro producto registrado con ese nombre",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
-                    content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<ProductoResponseDTO> actualizar(
@@ -146,9 +143,6 @@ public class ProductoController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Producto eliminado exitosamente"),
             @ApiResponse(responseCode = "404", description = "Producto no encontrado con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })

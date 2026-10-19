@@ -9,7 +9,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,11 +24,12 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     private final RowMapper<Cliente> clienteRowMapper = (rs, rowNum) -> Cliente.builder()
             .idCliente(rs.getLong("id_cliente"))
-            .nombre(rs.getString("nombre"))
+            .nombres(rs.getString("nombres"))
+            .apellidos(rs.getString("apellidos"))
+            .correo(rs.getString("correo"))
             .telefono(rs.getString("telefono"))
-            .email(rs.getString("email"))
-            .fechaRegistro(rs.getTimestamp("fecha_registro") != null 
-                    ? rs.getTimestamp("fecha_registro").toLocalDateTime() 
+            .fechaRegistro(rs.getTimestamp("fecha_registro") != null
+                    ? rs.getTimestamp("fecha_registro").toLocalDateTime()
                     : null)
             .build();
 
@@ -39,7 +39,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public Optional<Cliente> findById(Long id) {
-        String sql = "SELECT id_cliente, nombre, telefono, email, fecha_registro FROM cliente WHERE id_cliente = ?";
+        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente WHERE id_cliente = ?";
         try {
             Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, id);
             return Optional.ofNullable(cliente);
@@ -50,24 +50,25 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public List<Cliente> findAll() {
-        String sql = "SELECT id_cliente, nombre, telefono, email, fecha_registro FROM cliente ORDER BY id_cliente ASC";
+        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente ORDER BY id_cliente ASC";
         return jdbcTemplate.query(sql, clienteRowMapper);
     }
 
     @Override
     public Cliente save(Cliente cliente) {
-        String sql = "INSERT INTO cliente (nombre, telefono, email, fecha_registro) VALUES (?, ?, ?, ?)";
-        LocalDateTime fechaRegistro = cliente.getFechaRegistro() != null 
-                ? cliente.getFechaRegistro() 
+        String sql = "INSERT INTO cliente (nombres, apellidos, correo, telefono, fecha_registro) VALUES (?, ?, ?, ?, ?)";
+        LocalDateTime fechaRegistro = cliente.getFechaRegistro() != null
+                ? cliente.getFechaRegistro()
                 : LocalDateTime.now();
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] { "id_cliente" });
-            ps.setString(1, cliente.getNombre());
-            ps.setString(2, cliente.getTelefono());
-            ps.setString(3, cliente.getEmail());
-            ps.setTimestamp(4, Timestamp.valueOf(fechaRegistro));
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id_cliente"});
+            ps.setString(1, cliente.getNombres());
+            ps.setString(2, cliente.getApellidos() != null ? cliente.getApellidos() : "");
+            ps.setString(3, cliente.getCorreo());
+            ps.setString(4, cliente.getTelefono());
+            ps.setTimestamp(5, Timestamp.valueOf(fechaRegistro));
             return ps;
         }, keyHolder);
 
@@ -81,12 +82,13 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public Cliente update(Cliente cliente) {
-        String sql = "UPDATE cliente SET nombre = ?, telefono = ?, email = ? WHERE id_cliente = ?";
+        String sql = "UPDATE cliente SET nombres = ?, apellidos = ?, correo = ?, telefono = ? WHERE id_cliente = ?";
         jdbcTemplate.update(
                 sql,
-                cliente.getNombre(),
+                cliente.getNombres(),
+                cliente.getApellidos(),
+                cliente.getCorreo(),
                 cliente.getTelefono(),
-                cliente.getEmail(),
                 cliente.getIdCliente()
         );
         return cliente;
@@ -100,9 +102,9 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     @Override
-    public boolean existsByEmail(String email) {
-        String sql = "SELECT COUNT(*) FROM cliente WHERE LOWER(email) = LOWER(?)";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
+    public boolean existsByCorreo(String correo) {
+        String sql = "SELECT COUNT(*) FROM cliente WHERE LOWER(correo) = LOWER(?)";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, correo);
         return count != null && count > 0;
     }
 
@@ -114,9 +116,9 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     @Override
-    public boolean existsByEmailAndNotId(String email, Long id) {
-        String sql = "SELECT COUNT(*) FROM cliente WHERE LOWER(email) = LOWER(?) AND id_cliente <> ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email, id);
+    public boolean existsByCorreoAndNotId(String correo, Long id) {
+        String sql = "SELECT COUNT(*) FROM cliente WHERE LOWER(correo) = LOWER(?) AND id_cliente <> ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, correo, id);
         return count != null && count > 0;
     }
 
@@ -128,10 +130,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     @Override
-    public Optional<Cliente> findByEmail(String email) {
-        String sql = "SELECT id_cliente, nombre, telefono, email, fecha_registro FROM cliente WHERE LOWER(email) = LOWER(?)";
+    public Optional<Cliente> findByCorreo(String correo) {
+        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente WHERE LOWER(correo) = LOWER(?)";
         try {
-            Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, email);
+            Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, correo);
             return Optional.ofNullable(cliente);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -140,13 +142,38 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public Optional<Cliente> findByTelefono(String telefono) {
-        String sql = "SELECT id_cliente, nombre, telefono, email, fecha_registro FROM cliente WHERE telefono = ?";
+        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente WHERE telefono = ?";
         try {
             Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, telefono);
             return Optional.ofNullable(cliente);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public boolean hasActiveReservas(Long idCliente) {
+        String sql = "SELECT COUNT(*) FROM reserva WHERE id_cliente = ? AND estado IN ('PENDIENTE', 'CONFIRMADA')";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, idCliente);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public boolean hasPedidosOrFacturas(Long idCliente) {
+        String sqlPedidos = "SELECT COUNT(*) FROM pedido WHERE id_cliente = ?";
+        Integer countPedidos = jdbcTemplate.queryForObject(sqlPedidos, Integer.class, idCliente);
+        if (countPedidos != null && countPedidos > 0) {
+            return true;
+        }
+        String sqlFacturas = "SELECT COUNT(*) FROM factura WHERE id_cliente = ?";
+        Integer countFacturas = jdbcTemplate.queryForObject(sqlFacturas, Integer.class, idCliente);
+        return countFacturas != null && countFacturas > 0;
+    }
+
+    @Override
+    public int deleteHistoricalReservasByClienteId(Long idCliente) {
+        String sql = "DELETE FROM reserva WHERE id_cliente = ? AND estado IN ('CANCELADA', 'COMPLETADA')";
+        return jdbcTemplate.update(sql, idCliente);
     }
 
 }

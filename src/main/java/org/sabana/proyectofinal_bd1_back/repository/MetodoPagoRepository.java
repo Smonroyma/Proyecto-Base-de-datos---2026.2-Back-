@@ -10,22 +10,18 @@ import java.util.Optional;
  */
 public interface MetodoPagoRepository {
 
-    Optional<MetodoPago> findById(Long id);
+    Optional<MetodoPago> findByTipo(String tipo);
 
     List<MetodoPago> findAll();
 
     List<MetodoPago> findAllActivos();
 
-    Optional<MetodoPago> findByCodigo(String codigo);
-
     MetodoPago save(MetodoPago metodoPago);
 
-    MetodoPago update(MetodoPago metodoPago);
+    MetodoPago update(String tipoOriginal, MetodoPago metodoPago);
 
-    boolean deleteById(Long id);
+    boolean deleteByTipo(String tipo);
 
-    boolean existsByCodigo(String codigo);
-
-    boolean existsByCodigoAndNotId(String codigo, Long id);
+    boolean existsByTipo(String tipo);
 
 }

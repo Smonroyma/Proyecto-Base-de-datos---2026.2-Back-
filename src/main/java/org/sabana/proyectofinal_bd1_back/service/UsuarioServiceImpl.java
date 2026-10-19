@@ -3,8 +3,10 @@ package org.sabana.proyectofinal_bd1_back.service;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
+import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
+import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
 import org.sabana.proyectofinal_bd1_back.model.entity.RolUsuario;
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
 import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UserAlreadyExistsException;
@@ -12,6 +14,7 @@ import org.sabana.proyectofinal_bd1_back.util.exceptions.UserNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -19,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Implementación de la lógica de negocio para administración de usuarios.
+ * Implementación de la lógica de negocio para la administración de Staff (Administradores y Empleados).
  */
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
@@ -44,94 +47,130 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public UsuarioResponseDTO buscarPorId(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
+        Staff staff = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
-        return usuarioMapper.toResponseDTO(usuario);
+        return usuarioMapper.toResponseDTO(staff);
     }
 
     @Override
-    public UsuarioResponseDTO buscarPorEmail(String email) {
-        Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("No se encontró el usuario con email: " + email));
-        return usuarioMapper.toResponseDTO(usuario);
+    public UsuarioResponseDTO buscarPorCorreo(String correo) {
+        Staff staff = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new UserNotFoundException("No se encontró el usuario con correo: " + correo));
+        return usuarioMapper.toResponseDTO(staff);
     }
 
     @Override
     public List<UsuarioResponseDTO> obtenerTodos() {
-        List<Usuario> usuarios = usuarioRepository.findAll();
-        return usuarioMapper.toResponseDTOList(usuarios);
+        List<Staff> staffList = usuarioRepository.findAll();
+        return usuarioMapper.toResponseDTOList(staffList);
     }
 
     @Override
     public UsuarioResponseDTO crear(UsuarioRequestDTO requestDTO) {
         validarRol(requestDTO.getRol());
 
-        if (usuarioRepository.existsByEmail(requestDTO.getEmail())) {
+        if (usuarioRepository.existsByCorreo(requestDTO.getCorreo())) {
             throw new UserAlreadyExistsException(
-                    String.format("Ya existe un usuario registrado con el correo: %s", requestDTO.getEmail())
+                    String.format("Ya existe un usuario registrado con el correo: %s", requestDTO.getCorreo())
             );
         }
 
-        Usuario usuario = usuarioMapper.toEntity(requestDTO);
-        usuario.setPasswordHash(passwordEncoder.encode(requestDTO.getPassword()));
-        usuario.setRol(requestDTO.getRol().toUpperCase().trim());
-        usuario.setActivo(true);
-        usuario.setDosFactoresHabilitado(
-                requestDTO.getDosFactoresHabilitado() != null ? requestDTO.getDosFactoresHabilitado() : false
-        );
-        usuario.setFechaRegistro(LocalDateTime.now());
+        Staff staff = usuarioMapper.toEntity(requestDTO);
+        staff.setContrasena(passwordEncoder.encode(requestDTO.getContrasena()));
+        staff.setRol(requestDTO.getRol().toUpperCase().trim());
+        staff.setDosFacHab(Boolean.TRUE.equals(requestDTO.getDosFacHab()));
+        staff.setFechaInicio(LocalDate.now());
 
-        Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        if (staff instanceof Empleado empleado) {
+            String estado = (requestDTO.getEstado() != null && !requestDTO.getEstado().isBlank())
+                    ? requestDTO.getEstado().trim().toUpperCase()
+                    : "ACTIVO";
+            empleado.setEstado(estado);
+        }
 
-        if (usuarioGuardado != null && usuarioGuardado.getEmail() != null && !usuarioGuardado.getEmail().isBlank()) {
+        Staff staffGuardado = usuarioRepository.save(staff);
+
+        if (staffGuardado != null && staffGuardado.getCorreo() != null && !staffGuardado.getCorreo().isBlank()) {
+            String estadoCuenta = (staffGuardado instanceof Empleado emp) ? emp.getEstado() : "ACTIVO";
             Map<String, String> detalles = new LinkedHashMap<>();
-            detalles.put("Nombre", usuarioGuardado.getNombre());
-            detalles.put("Correo Electrónico", usuarioGuardado.getEmail());
-            detalles.put("Rol Asignado", usuarioGuardado.getRol());
-            detalles.put("Verificación 2FA", Boolean.TRUE.equals(usuarioGuardado.getDosFactoresHabilitado()) ? "Habilitada" : "Deshabilitada");
-            detalles.put("Estado de Cuenta", "ACTIVA");
+            detalles.put("Nombre", staffGuardado.getNombreCompleto());
+            detalles.put("Correo Electrónico", staffGuardado.getCorreo());
+            detalles.put("Rol Asignado", staffGuardado.getRol());
+            detalles.put("Verificación 2FA", Boolean.TRUE.equals(staffGuardado.getDosFacHab()) ? "Habilitada" : "Deshabilitada");
+            detalles.put("Estado de Cuenta", estadoCuenta);
 
             emailService.sendNotificacionEmail(
-                    usuarioGuardado.getEmail(),
+                    staffGuardado.getCorreo(),
                     "Bienvenido a Savana Coffee",
-                    usuarioGuardado.getNombre(),
+                    staffGuardado.getNombreCompleto(),
                     "Tu cuenta corporativa ha sido registrada exitosamente en la plataforma de gestión Savana Data Coffee.",
                     detalles,
                     "Recuerda mantener tus credenciales seguras y no compartir tu acceso con terceros."
             );
         }
 
-        return usuarioMapper.toResponseDTO(usuarioGuardado);
+        return usuarioMapper.toResponseDTO(staffGuardado);
     }
 
     @Override
     public UsuarioResponseDTO actualizar(Long id, UsuarioRequestDTO requestDTO) {
-        Usuario existente = usuarioRepository.findById(id)
+        Staff existente = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
         validarRol(requestDTO.getRol());
 
-        if (usuarioRepository.existsByEmailAndNotId(requestDTO.getEmail(), id)) {
+        if (usuarioRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), id)) {
             throw new UserAlreadyExistsException(
-                    String.format("Ya existe otro usuario registrado con el correo: %s", requestDTO.getEmail())
+                    String.format("Ya existe otro usuario registrado con el correo: %s", requestDTO.getCorreo())
             );
         }
 
-        usuarioMapper.updateEntityFromDTO(requestDTO, existente);
-        existente.setIdUsuario(id);
-        existente.setRol(requestDTO.getRol().toUpperCase().trim());
+        String rolNuevo = requestDTO.getRol().trim().toUpperCase();
+        String contrasenaFinal = (requestDTO.getContrasena() != null && !requestDTO.getContrasena().isBlank())
+                ? passwordEncoder.encode(requestDTO.getContrasena())
+                : existente.getContrasena();
+        Boolean dosFacFinal = requestDTO.getDosFacHab() != null
+                ? requestDTO.getDosFacHab()
+                : existente.getDosFacHab();
+        String apellidosFinal = requestDTO.getApellidos() != null
+                ? requestDTO.getApellidos().trim()
+                : (existente.getApellidos() != null ? existente.getApellidos() : "");
 
-        if (requestDTO.getPassword() != null && !requestDTO.getPassword().isBlank()) {
-            existente.setPasswordHash(passwordEncoder.encode(requestDTO.getPassword()));
+        Staff entidadParaActualizar;
+        if ("ADMINISTRADOR".equals(rolNuevo)) {
+            entidadParaActualizar = Administrador.builder()
+                    .idUsuario(id)
+                    .nombres(requestDTO.getNombres().trim())
+                    .apellidos(apellidosFinal)
+                    .correo(requestDTO.getCorreo().trim().toLowerCase())
+                    .contrasena(contrasenaFinal)
+                    .dosFacHab(dosFacFinal)
+                    .fechaInicio(existente.getFechaInicio())
+                    .rol("ADMINISTRADOR")
+                    .build();
+        } else {
+            String estadoEmpleado = "ACTIVO";
+            if (requestDTO.getEstado() != null && !requestDTO.getEstado().isBlank()) {
+                estadoEmpleado = requestDTO.getEstado().trim().toUpperCase();
+            } else if (existente instanceof Empleado empExistente && empExistente.getEstado() != null) {
+                estadoEmpleado = empExistente.getEstado();
+            }
+            entidadParaActualizar = Empleado.builder()
+                    .idUsuario(id)
+                    .nombres(requestDTO.getNombres().trim())
+                    .apellidos(apellidosFinal)
+                    .correo(requestDTO.getCorreo().trim().toLowerCase())
+                    .contrasena(contrasenaFinal)
+                    .dosFacHab(dosFacFinal)
+                    .fechaInicio(existente.getFechaInicio())
+                    .rol("EMPLEADO")
+                    .estado(estadoEmpleado)
+                    .build();
         }
 
-        if (requestDTO.getDosFactoresHabilitado() != null) {
-            existente.setDosFactoresHabilitado(requestDTO.getDosFactoresHabilitado());
-        }
+        Staff actualizado = usuarioRepository.update(entidadParaActualizar);
 
-        Usuario actualizado = usuarioRepository.update(existente);
-
-        if (actualizado != null && !Boolean.TRUE.equals(actualizado.getActivo())) {
+        if (actualizado instanceof Empleado emp && !emp.isActivo()) {
             enviarNotificacionDesactivacion(actualizado);
         }
 
@@ -139,27 +178,53 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    public UsuarioResponseDTO cambiarEstado(Long id, String nuevoEstado) {
+        Staff existente = usuarioRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+
+        if (nuevoEstado == null || (!"ACTIVO".equalsIgnoreCase(nuevoEstado.trim()) && !"INACTIVO".equalsIgnoreCase(nuevoEstado.trim()))) {
+            throw new IllegalArgumentException("El estado del empleado debe ser ACTIVO o INACTIVO");
+        }
+
+        if (existente instanceof Administrador) {
+            throw new IllegalArgumentException("El usuario con rol ADMINISTRADOR siempre permanece activo");
+        }
+
+        String estadoNormalizado = nuevoEstado.trim().toUpperCase();
+        if (existente instanceof Empleado empleado) {
+            empleado.setEstado(estadoNormalizado);
+        }
+
+        Staff actualizado = usuarioRepository.update(existente);
+        if ("INACTIVO".equals(estadoNormalizado)) {
+            enviarNotificacionDesactivacion(actualizado != null ? actualizado : existente);
+        }
+
+        return usuarioMapper.toResponseDTO(actualizado);
+    }
+
+    @Override
     public void eliminar(Long id) {
-        Usuario existente = usuarioRepository.findById(id)
+        Staff existente = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
         usuarioRepository.deleteById(id);
         enviarNotificacionDesactivacion(existente);
     }
 
-    private void enviarNotificacionDesactivacion(Usuario usuario) {
-        if (usuario.getEmail() != null && !usuario.getEmail().isBlank()) {
+    private void enviarNotificacionDesactivacion(Staff staff) {
+        if (staff != null && staff.getCorreo() != null && !staff.getCorreo().isBlank()) {
             Map<String, String> detalles = new LinkedHashMap<>();
-            detalles.put("Usuario", usuario.getNombre());
-            detalles.put("Correo Electrónico", usuario.getEmail());
-            detalles.put("Rol", usuario.getRol());
-            detalles.put("Estado de Cuenta", "DESACTIVADA");
+            detalles.put("Usuario", staff.getNombreCompleto());
+            detalles.put("Correo Electrónico", staff.getCorreo());
+            detalles.put("Rol", staff.getRol());
+            detalles.put("Estado de Cuenta", "INACTIVO");
             detalles.put("Fecha de Operación", LocalDateTime.now().format(DATE_TIME_FORMATTER));
 
             emailService.sendNotificacionEmail(
-                    usuario.getEmail(),
+                    staff.getCorreo(),
                     "Desactivación de Cuenta",
-                    usuario.getNombre(),
+                    staff.getNombreCompleto(),
                     "Te informamos que tu cuenta de acceso en el sistema Savana Data Coffee ha sido desactivada por la administración.",
                     detalles,
                     "Si consideras que se trata de un error, por favor comunícate con el administrador del sistema."
@@ -170,7 +235,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private void validarRol(String rol) {
         if (!RolUsuario.esValido(rol)) {
             throw new IllegalArgumentException(
-                    String.format("El rol '%s' no es válido. Los roles permitidos son: ADMINISTRADOR, BARISTA, CAJERO", rol)
+                    String.format("El rol '%s' no es válido. Los roles permitidos son: ADMINISTRADOR, EMPLEADO", rol)
             );
         }
     }

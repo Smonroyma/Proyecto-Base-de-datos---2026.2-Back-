@@ -9,9 +9,12 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
+import java.sql.Time;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,29 +27,30 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     private final JdbcTemplate jdbcTemplate;
 
     private static final String BASE_SELECT = """
-            SELECT r.id_reserva, r.id_cliente, c.nombre AS nombre_cliente,
-                   r.id_mesa, m.numero AS numero_mesa,
-                   r.fecha_hora, r.numero_personas, r.estado, r.observaciones
+            SELECT r.id_reserva, r.id_cliente,
+                   CONCAT(c.nombres, ' ', c.apellidos) AS nombre_cliente,
+                   c.correo AS correo_cliente,
+                   r.numero_mesa, r.fecha, r.hora, r.numero_personas, r.estado, r.observaciones
             FROM reserva r
-            LEFT JOIN cliente c ON r.id_cliente = c.id_cliente
-            LEFT JOIN mesa m ON r.id_mesa = m.id_mesa
+            INNER JOIN cliente c ON r.id_cliente = c.id_cliente
+            INNER JOIN mesa m ON r.numero_mesa = m.numero_mesa
             """;
 
     private final RowMapper<Reserva> reservaRowMapper = (rs, rowNum) -> Reserva.builder()
             .idReserva(rs.getLong("id_reserva"))
             .idCliente(rs.getObject("id_cliente") != null ? rs.getLong("id_cliente") : null)
-            .nombreCliente(rs.getString("nombre_cliente"))
-            .idMesa(rs.getObject("id_mesa") != null ? rs.getLong("id_mesa") : null)
+            .nombreCliente(rs.getString("nombre_cliente") != null ? rs.getString("nombre_cliente").trim() : null)
+            .correoCliente(rs.getString("correo_cliente"))
             .numeroMesa(rs.getObject("numero_mesa") != null ? rs.getInt("numero_mesa") : null)
-            .fechaHora(rs.getTimestamp("fecha_hora") != null ? rs.getTimestamp("fecha_hora").toLocalDateTime() : null)
+            .fecha(rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null)
+            .hora(rs.getTime("hora") != null ? rs.getTime("hora").toLocalTime() : null)
             .numeroPersonas(rs.getObject("numero_personas") != null ? rs.getInt("numero_personas") : null)
             .estado(rs.getString("estado"))
             .observaciones(rs.getString("observaciones"))
             .build();
 
     private final RowMapper<Mesa> mesaRowMapper = (rs, rowNum) -> Mesa.builder()
-            .idMesa(rs.getLong("id_mesa"))
-            .numero(rs.getInt("numero"))
+            .numeroMesa(rs.getInt("numero_mesa"))
             .capacidad(rs.getInt("capacidad"))
             .estado(rs.getString("estado"))
             .build();
@@ -68,66 +72,86 @@ public class ReservaRepositoryImpl implements ReservaRepository {
 
     @Override
     public List<Reserva> findAll() {
-        String sql = BASE_SELECT + " ORDER BY r.fecha_hora DESC";
+        String sql = BASE_SELECT + " ORDER BY r.fecha DESC, r.hora DESC";
         return jdbcTemplate.query(sql, reservaRowMapper);
     }
 
     @Override
     public List<Reserva> findByCliente(Long idCliente) {
-        String sql = BASE_SELECT + " WHERE r.id_cliente = ? ORDER BY r.fecha_hora DESC";
+        String sql = BASE_SELECT + " WHERE r.id_cliente = ? ORDER BY r.fecha DESC, r.hora DESC";
         return jdbcTemplate.query(sql, reservaRowMapper, idCliente);
     }
 
     @Override
-    public List<Reserva> findByMesa(Long idMesa) {
-        String sql = BASE_SELECT + " WHERE r.id_mesa = ? ORDER BY r.fecha_hora DESC";
-        return jdbcTemplate.query(sql, reservaRowMapper, idMesa);
+    public List<Reserva> findByClienteCorreo(String correo) {
+        String sql = BASE_SELECT + " WHERE LOWER(TRIM(c.correo)) = LOWER(TRIM(?)) ORDER BY r.fecha DESC, r.hora DESC";
+        return jdbcTemplate.query(sql, reservaRowMapper, correo);
+    }
+
+    @Override
+    public List<Reserva> findByMesa(Integer numeroMesa) {
+        String sql = BASE_SELECT + " WHERE r.numero_mesa = ? ORDER BY r.fecha DESC, r.hora DESC";
+        return jdbcTemplate.query(sql, reservaRowMapper, numeroMesa);
     }
 
     @Override
     public List<Reserva> findByEstado(String estado) {
-        String sql = BASE_SELECT + " WHERE UPPER(r.estado) = UPPER(?) ORDER BY r.fecha_hora DESC";
+        String sql = BASE_SELECT + " WHERE UPPER(r.estado) = UPPER(?) ORDER BY r.fecha DESC, r.hora DESC";
         return jdbcTemplate.query(sql, reservaRowMapper, estado);
     }
 
     @Override
     public List<Mesa> findMesasDisponibles(LocalDateTime fechaHora, Integer capacidadRequerida) {
-        Timestamp windowStart = Timestamp.valueOf(fechaHora.minusHours(2).plusMinutes(1));
-        Timestamp windowEnd = Timestamp.valueOf(fechaHora.plusHours(2).minusMinutes(1));
+        LocalDate fecha = fechaHora.toLocalDate();
+        LocalTime hora = fechaHora.toLocalTime();
+        LocalTime windowStart = hora.isBefore(LocalTime.of(2, 0)) ? LocalTime.MIN : hora.minusHours(2).plusMinutes(1);
+        LocalTime windowEnd = hora.isAfter(LocalTime.of(21, 59)) ? LocalTime.MAX : hora.plusHours(2).minusMinutes(1);
 
         String sql = """
-                SELECT m.id_mesa, m.numero, m.capacidad, m.estado
+                SELECT m.numero_mesa, m.capacidad, m.estado
                 FROM mesa m
                 WHERE m.capacidad >= ?
                   AND UPPER(m.estado) <> 'EN_MANTENIMIENTO'
-                  AND m.id_mesa NOT IN (
-                      SELECT r.id_mesa
+                  AND m.numero_mesa NOT IN (
+                      SELECT r.numero_mesa
                       FROM reserva r
                       WHERE UPPER(r.estado) IN ('PENDIENTE', 'CONFIRMADA')
-                        AND r.fecha_hora BETWEEN ? AND ?
+                        AND r.fecha = ?
+                        AND r.hora BETWEEN ? AND ?
                   )
-                ORDER BY m.capacidad ASC, m.numero ASC
+                ORDER BY m.capacidad ASC, m.numero_mesa ASC
                 """;
 
-        return jdbcTemplate.query(sql, mesaRowMapper, capacidadRequerida, windowStart, windowEnd);
+        return jdbcTemplate.query(
+                sql,
+                mesaRowMapper,
+                capacidadRequerida,
+                Date.valueOf(fecha),
+                Time.valueOf(windowStart),
+                Time.valueOf(windowEnd)
+        );
     }
 
     @Override
     public Reserva save(Reserva reserva) {
         String sql = """
-                INSERT INTO reserva (id_cliente, id_mesa, fecha_hora, numero_personas, estado, observaciones)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO reserva (id_cliente, numero_mesa, fecha, hora, numero_personas, estado, observaciones)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
+        LocalDate fecha = reserva.getFecha() != null ? reserva.getFecha() : LocalDate.now();
+        LocalTime hora = reserva.getHora() != null ? reserva.getHora() : LocalTime.of(12, 0);
+        String estadoUpper = reserva.getEstado() != null ? reserva.getEstado().toUpperCase().trim() : "PENDIENTE";
 
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] { "id_reserva" });
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id_reserva"});
             ps.setLong(1, reserva.getIdCliente());
-            ps.setLong(2, reserva.getIdMesa());
-            ps.setTimestamp(3, Timestamp.valueOf(reserva.getFechaHora()));
-            ps.setInt(4, reserva.getNumeroPersonas());
-            ps.setString(5, reserva.getEstado() != null ? reserva.getEstado().toUpperCase() : "PENDIENTE");
-            ps.setString(6, reserva.getObservaciones());
+            ps.setInt(2, reserva.getNumeroMesa());
+            ps.setDate(3, Date.valueOf(fecha));
+            ps.setTime(4, Time.valueOf(hora));
+            ps.setInt(5, reserva.getNumeroPersonas());
+            ps.setString(6, estadoUpper);
+            ps.setString(7, reserva.getObservaciones());
             return ps;
         }, keyHolder);
 
@@ -135,11 +159,9 @@ public class ReservaRepositoryImpl implements ReservaRepository {
         if (generatedKey != null) {
             reserva.setIdReserva(generatedKey.longValue());
         }
-        if (reserva.getEstado() != null) {
-            reserva.setEstado(reserva.getEstado().toUpperCase());
-        } else {
-            reserva.setEstado("PENDIENTE");
-        }
+        reserva.setFecha(fecha);
+        reserva.setHora(hora);
+        reserva.setEstado(estadoUpper);
         return reserva;
     }
 
@@ -147,20 +169,26 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     public Reserva update(Reserva reserva) {
         String sql = """
                 UPDATE reserva
-                SET id_cliente = ?, id_mesa = ?, fecha_hora = ?, numero_personas = ?, estado = ?, observaciones = ?
+                SET id_cliente = ?, numero_mesa = ?, fecha = ?, hora = ?, numero_personas = ?, estado = ?, observaciones = ?
                 WHERE id_reserva = ?
                 """;
-        String estadoUpper = reserva.getEstado() != null ? reserva.getEstado().toUpperCase() : "PENDIENTE";
+        LocalDate fecha = reserva.getFecha() != null ? reserva.getFecha() : LocalDate.now();
+        LocalTime hora = reserva.getHora() != null ? reserva.getHora() : LocalTime.of(12, 0);
+        String estadoUpper = reserva.getEstado() != null ? reserva.getEstado().toUpperCase().trim() : "PENDIENTE";
+
         jdbcTemplate.update(
                 sql,
                 reserva.getIdCliente(),
-                reserva.getIdMesa(),
-                Timestamp.valueOf(reserva.getFechaHora()),
+                reserva.getNumeroMesa(),
+                Date.valueOf(fecha),
+                Time.valueOf(hora),
                 reserva.getNumeroPersonas(),
                 estadoUpper,
                 reserva.getObservaciones(),
                 reserva.getIdReserva()
         );
+        reserva.setFecha(fecha);
+        reserva.setHora(hora);
         reserva.setEstado(estadoUpper);
         return reserva;
     }
@@ -173,29 +201,48 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     }
 
     @Override
-    public boolean existsOverlappingReserva(Long idMesa, LocalDateTime fechaHora, Long excludeReservaId) {
-        Timestamp windowStart = Timestamp.valueOf(fechaHora.minusHours(2).plusMinutes(1));
-        Timestamp windowEnd = Timestamp.valueOf(fechaHora.plusHours(2).minusMinutes(1));
+    public boolean existsOverlappingReserva(Integer numeroMesa, LocalDateTime fechaHora, Long excludeReservaId) {
+        LocalDate fecha = fechaHora.toLocalDate();
+        LocalTime hora = fechaHora.toLocalTime();
+        LocalTime windowStart = hora.isBefore(LocalTime.of(2, 0)) ? LocalTime.MIN : hora.minusHours(2).plusMinutes(1);
+        LocalTime windowEnd = hora.isAfter(LocalTime.of(21, 59)) ? LocalTime.MAX : hora.plusHours(2).minusMinutes(1);
 
         String sql;
         Integer count;
         if (excludeReservaId == null) {
             sql = """
                     SELECT COUNT(*) FROM reserva
-                    WHERE id_mesa = ?
+                    WHERE numero_mesa = ?
                       AND UPPER(estado) IN ('PENDIENTE', 'CONFIRMADA')
-                      AND fecha_hora BETWEEN ? AND ?
+                      AND fecha = ?
+                      AND hora BETWEEN ? AND ?
                     """;
-            count = jdbcTemplate.queryForObject(sql, Integer.class, idMesa, windowStart, windowEnd);
+            count = jdbcTemplate.queryForObject(
+                    sql,
+                    Integer.class,
+                    numeroMesa,
+                    Date.valueOf(fecha),
+                    Time.valueOf(windowStart),
+                    Time.valueOf(windowEnd)
+            );
         } else {
             sql = """
                     SELECT COUNT(*) FROM reserva
-                    WHERE id_mesa = ?
+                    WHERE numero_mesa = ?
                       AND UPPER(estado) IN ('PENDIENTE', 'CONFIRMADA')
-                      AND fecha_hora BETWEEN ? AND ?
+                      AND fecha = ?
+                      AND hora BETWEEN ? AND ?
                       AND id_reserva <> ?
                     """;
-            count = jdbcTemplate.queryForObject(sql, Integer.class, idMesa, windowStart, windowEnd, excludeReservaId);
+            count = jdbcTemplate.queryForObject(
+                    sql,
+                    Integer.class,
+                    numeroMesa,
+                    Date.valueOf(fecha),
+                    Time.valueOf(windowStart),
+                    Time.valueOf(windowEnd),
+                    excludeReservaId
+            );
         }
 
         return count != null && count > 0;

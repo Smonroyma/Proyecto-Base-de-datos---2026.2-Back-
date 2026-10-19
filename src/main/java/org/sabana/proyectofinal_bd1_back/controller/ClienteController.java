@@ -25,13 +25,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controlador REST para la gestión de clientes en Savana Data Coffee.
  */
 @RestController
 @RequestMapping("/api/clientes")
-@Tag(name = "Clientes", description = "Endpoints para la gestión y administración de clientes")
+@Tag(name = "Clientes", description = "Endpoints para la gestión y administración permanente de clientes")
 public class ClienteController {
 
     private final ClienteService clienteService;
@@ -125,21 +126,27 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar cliente", description = "Elimina permanentemente un cliente del sistema dado su ID.")
+    @Operation(summary = "Eliminar cliente explícitamente", description = "Permite al Administrador eliminar permanentemente un cliente si no tiene reservas activas ni facturas/pedidos contables.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Cliente eliminado exitosamente"),
+            @ApiResponse(responseCode = "200", description = "Cliente eliminado exitosamente"),
             @ApiResponse(responseCode = "404", description = "Cliente no encontrado con el ID especificado",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "Conflicto porque el cliente tiene reservas activas o historial contable",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "500", description = "Error interno del servidor",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
-    public ResponseEntity<Void> eliminar(
+    public ResponseEntity<Map<String, Object>> eliminar(
             @Parameter(description = "Identificador único del cliente a eliminar", example = "1", required = true)
             @PathVariable Long id) {
         clienteService.eliminar(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of(
+                "mensaje", "Cliente eliminado exitosamente",
+                "idCliente", id
+        ));
     }
 
 }

@@ -6,7 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * DTO de salida con los datos completos de una reserva.
@@ -27,13 +29,19 @@ public class ReservaResponseDTO {
     @Schema(description = "Nombre completo del cliente", example = "Carlos Mendoza")
     private String nombreCliente;
 
-    @Schema(description = "ID de la mesa asignada", example = "3")
-    private Long idMesa;
+    @Schema(description = "Correo electrónico único del cliente", example = "carlos.mendoza@email.com")
+    private String correoCliente;
 
-    @Schema(description = "Número visible de la mesa asignada", example = "5")
+    @Schema(description = "Número único de la mesa asignada", example = "3")
     private Integer numeroMesa;
 
-    @Schema(description = "Fecha y hora reservada", example = "2026-11-20T19:30:00")
+    @Schema(description = "Fecha reservada", example = "2026-11-20")
+    private LocalDate fecha;
+
+    @Schema(description = "Hora reservada", example = "19:30:00")
+    private LocalTime hora;
+
+    @Schema(description = "Fecha y hora reservada combinada", example = "2026-11-20T19:30:00")
     private LocalDateTime fechaHora;
 
     @Schema(description = "Cantidad de personas reservadas", example = "4")

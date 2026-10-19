@@ -11,20 +11,18 @@ import java.util.Optional;
  */
 public interface CategoriaRepository {
 
-    Optional<Categoria> findById(Long id);
+    Optional<Categoria> findByNombreCategoria(String nombreCategoria);
 
     List<Categoria> findAll();
 
-    List<Categoria> findAllActivas();
+    List<Categoria> findByEstado(String estado);
 
     Categoria save(Categoria categoria);
 
-    Categoria update(Categoria categoria);
+    Categoria update(String nombreCategoriaOriginal, Categoria categoria);
 
-    boolean deleteById(Long id);
+    boolean deleteByNombreCategoria(String nombreCategoria);
 
-    boolean existsByNombre(String nombre);
-
-    boolean existsByNombreAndNotId(String nombre, Long id);
+    boolean existsByNombreCategoria(String nombreCategoria);
 
 }

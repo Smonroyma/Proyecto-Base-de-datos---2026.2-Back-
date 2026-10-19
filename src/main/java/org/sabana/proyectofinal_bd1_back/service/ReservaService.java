@@ -12,7 +12,9 @@ import java.util.List;
  */
 public interface ReservaService {
 
-    List<ReservaResponseDTO> obtenerReservas(Long clienteId, Long mesaId, String estado);
+    List<ReservaResponseDTO> obtenerReservas(Long clienteId, String correo, Integer numeroMesa, String estado);
+
+    List<ReservaResponseDTO> buscarPorCorreoCliente(String correo);
 
     ReservaResponseDTO buscarPorId(Long id);
 

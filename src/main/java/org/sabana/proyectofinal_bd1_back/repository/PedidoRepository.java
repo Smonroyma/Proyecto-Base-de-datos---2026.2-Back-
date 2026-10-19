@@ -16,7 +16,7 @@ public interface PedidoRepository {
 
     List<Pedido> findByCliente(Long idCliente);
 
-    List<Pedido> findByMesa(Long idMesa);
+    List<Pedido> findByMesa(Integer numeroMesa);
 
     List<Pedido> findByUsuario(Long idUsuario);
 

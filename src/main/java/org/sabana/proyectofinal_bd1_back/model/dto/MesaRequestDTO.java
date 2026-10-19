@@ -1,5 +1,6 @@
 package org.sabana.proyectofinal_bd1_back.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -22,8 +23,9 @@ public class MesaRequestDTO {
 
     @NotNull(message = "El número de mesa es obligatorio")
     @Min(value = 1, message = "El número de mesa debe ser un entero positivo mayor o igual a 1")
-    @Schema(description = "Número identificador visible de la mesa en el salón", example = "5")
-    private Integer numero;
+    @JsonAlias({"numero", "idMesa"})
+    @Schema(description = "Número identificador único de la mesa en el salón (PK)", example = "5")
+    private Integer numeroMesa;
 
     @NotNull(message = "La capacidad de la mesa es obligatoria")
     @Min(value = 1, message = "La capacidad debe ser de al menos 1 puesto")

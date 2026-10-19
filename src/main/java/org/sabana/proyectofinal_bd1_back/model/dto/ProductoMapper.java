@@ -14,7 +14,6 @@ import java.util.List;
 public interface ProductoMapper {
 
     @Mapping(target = "idProducto", ignore = true)
-    @Mapping(target = "nombreCategoria", ignore = true)
     Producto toEntity(ProductoRequestDTO dto);
 
     ProductoResponseDTO toResponseDTO(Producto entity);
@@ -22,7 +21,6 @@ public interface ProductoMapper {
     List<ProductoResponseDTO> toResponseDTOList(List<Producto> entities);
 
     @Mapping(target = "idProducto", ignore = true)
-    @Mapping(target = "nombreCategoria", ignore = true)
     void updateEntityFromDTO(ProductoRequestDTO dto, @MappingTarget Producto entity);
 
 }

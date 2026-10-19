@@ -52,10 +52,9 @@ class ProductoServiceImplTest {
     @BeforeEach
     void setUp() {
         categoria = Categoria.builder()
-                .idCategoria(1L)
-                .nombre("Bebidas Calientes")
+                .nombreCategoria("Bebidas Calientes")
                 .descripcion("Cafés espresso y lattes")
-                .activo(true)
+                .estado("ACTIVA")
                 .build();
 
         producto = Producto.builder()
@@ -63,10 +62,9 @@ class ProductoServiceImplTest {
                 .nombre("Café Americano")
                 .descripcion("Espresso doble diluido con agua caliente")
                 .precio(6500.0)
-                .idCategoria(1L)
                 .nombreCategoria("Bebidas Calientes")
                 .imagenUrl("https://imagenes.savanacoffee.com/americano.jpg")
-                .disponible(true)
+                .disponibilidad(true)
                 .stock(50)
                 .build();
 
@@ -74,9 +72,9 @@ class ProductoServiceImplTest {
                 .nombre("Café Americano")
                 .descripcion("Espresso doble diluido con agua caliente")
                 .precio(6500.0)
-                .idCategoria(1L)
+                .nombreCategoria("Bebidas Calientes")
                 .imagenUrl("https://imagenes.savanacoffee.com/americano.jpg")
-                .disponible(true)
+                .disponibilidad(true)
                 .stock(50)
                 .build();
 
@@ -85,10 +83,9 @@ class ProductoServiceImplTest {
                 .nombre("Café Americano")
                 .descripcion("Espresso doble diluido con agua caliente")
                 .precio(6500.0)
-                .idCategoria(1L)
                 .nombreCategoria("Bebidas Calientes")
                 .imagenUrl("https://imagenes.savanacoffee.com/americano.jpg")
-                .disponible(true)
+                .disponibilidad(true)
                 .stock(50)
                 .build();
     }
@@ -139,14 +136,14 @@ class ProductoServiceImplTest {
         List<Producto> productos = List.of(producto);
         List<ProductoResponseDTO> responseList = List.of(responseDTO);
 
-        when(productoRepository.findByCategoria(1L)).thenReturn(productos);
+        when(productoRepository.findByCategoria("Bebidas Calientes")).thenReturn(productos);
         when(productoMapper.toResponseDTOList(productos)).thenReturn(responseList);
 
-        List<ProductoResponseDTO> result = productoService.obtenerProductos(1L, null);
+        List<ProductoResponseDTO> result = productoService.obtenerProductos("Bebidas Calientes", null);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(productoRepository).findByCategoria(1L);
+        verify(productoRepository).findByCategoria("Bebidas Calientes");
     }
 
     @Test
@@ -155,14 +152,14 @@ class ProductoServiceImplTest {
         List<Producto> productos = List.of(producto);
         List<ProductoResponseDTO> responseList = List.of(responseDTO);
 
-        when(productoRepository.findByDisponible(true)).thenReturn(productos);
+        when(productoRepository.findByDisponibilidad(true)).thenReturn(productos);
         when(productoMapper.toResponseDTOList(productos)).thenReturn(responseList);
 
         List<ProductoResponseDTO> result = productoService.obtenerProductos(null, true);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(productoRepository).findByDisponible(true);
+        verify(productoRepository).findByDisponibilidad(true);
     }
 
     @Test
@@ -171,20 +168,20 @@ class ProductoServiceImplTest {
         List<Producto> productos = List.of(producto);
         List<ProductoResponseDTO> responseList = List.of(responseDTO);
 
-        when(productoRepository.findByCategoriaAndDisponible(1L, true)).thenReturn(productos);
+        when(productoRepository.findByCategoriaAndDisponibilidad("Bebidas Calientes", true)).thenReturn(productos);
         when(productoMapper.toResponseDTOList(productos)).thenReturn(responseList);
 
-        List<ProductoResponseDTO> result = productoService.obtenerProductos(1L, true);
+        List<ProductoResponseDTO> result = productoService.obtenerProductos("Bebidas Calientes", true);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(productoRepository).findByCategoriaAndDisponible(1L, true);
+        verify(productoRepository).findByCategoriaAndDisponibilidad("Bebidas Calientes", true);
     }
 
     @Test
     @DisplayName("crear registra un producto exitosamente cuando la categoría existe y el nombre no está duplicado")
     void crear_Exitoso() {
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
         when(productoRepository.existsByNombre("Café Americano")).thenReturn(false);
         when(productoMapper.toEntity(requestDTO)).thenReturn(producto);
         when(productoRepository.save(any(Producto.class))).thenReturn(producto);
@@ -194,15 +191,15 @@ class ProductoServiceImplTest {
 
         assertNotNull(result);
         assertEquals("Café Americano", result.getNombre());
-        verify(categoriaRepository).findById(1L);
+        verify(categoriaRepository).findByNombreCategoria("Bebidas Calientes");
         verify(productoRepository).save(any(Producto.class));
     }
 
     @Test
     @DisplayName("crear lanza CategoriaNotFoundException cuando la categoría especificada no existe")
     void crear_CategoriaNoExiste_LanzaCategoriaNotFoundException() {
-        when(categoriaRepository.findById(99L)).thenReturn(Optional.empty());
-        requestDTO.setIdCategoria(99L);
+        when(categoriaRepository.findByNombreCategoria("Inexistente")).thenReturn(Optional.empty());
+        requestDTO.setNombreCategoria("Inexistente");
 
         assertThrows(CategoriaNotFoundException.class, () -> productoService.crear(requestDTO));
         verify(productoRepository, never()).save(any(Producto.class));
@@ -211,7 +208,7 @@ class ProductoServiceImplTest {
     @Test
     @DisplayName("crear lanza ProductoAlreadyExistsException cuando el nombre del producto ya existe")
     void crear_NombreDuplicado_LanzaProductoAlreadyExistsException() {
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
         when(productoRepository.existsByNombre("Café Americano")).thenReturn(true);
 
         assertThrows(ProductoAlreadyExistsException.class, () -> productoService.crear(requestDTO));
@@ -222,7 +219,7 @@ class ProductoServiceImplTest {
     @DisplayName("actualizar modifica un producto exitosamente cuando producto y categoría existen y el nombre no colisiona")
     void actualizar_Exitoso() {
         when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
         when(productoRepository.existsByNombreAndNotId("Café Americano", 1L)).thenReturn(false);
         when(productoRepository.update(producto)).thenReturn(producto);
         when(productoMapper.toResponseDTO(producto)).thenReturn(responseDTO);
@@ -239,7 +236,7 @@ class ProductoServiceImplTest {
         when(productoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ProductoNotFoundException.class, () -> productoService.actualizar(99L, requestDTO));
-        verify(categoriaRepository, never()).findById(any());
+        verify(categoriaRepository, never()).findByNombreCategoria(any());
         verify(productoRepository, never()).update(any(Producto.class));
     }
 
@@ -247,7 +244,7 @@ class ProductoServiceImplTest {
     @DisplayName("actualizar lanza CategoriaNotFoundException cuando la categoría indicada no existe")
     void actualizar_CategoriaNoExiste_LanzaCategoriaNotFoundException() {
         when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.empty());
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.empty());
 
         assertThrows(CategoriaNotFoundException.class, () -> productoService.actualizar(1L, requestDTO));
         verify(productoRepository, never()).update(any(Producto.class));
@@ -257,7 +254,7 @@ class ProductoServiceImplTest {
     @DisplayName("actualizar lanza ProductoAlreadyExistsException cuando otro producto ya posee el mismo nombre")
     void actualizar_NombreDuplicado_LanzaProductoAlreadyExistsException() {
         when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
+        when(categoriaRepository.findByNombreCategoria("Bebidas Calientes")).thenReturn(Optional.of(categoria));
         when(productoRepository.existsByNombreAndNotId("Café Americano", 1L)).thenReturn(true);
 
         assertThrows(ProductoAlreadyExistsException.class, () -> productoService.actualizar(1L, requestDTO));

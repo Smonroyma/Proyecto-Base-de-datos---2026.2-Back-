@@ -1,12 +1,12 @@
 package org.sabana.proyectofinal_bd1_back.model.entity;
 
 /**
- * Roles operativos de usuarios en el sistema Savana Data Coffee.
+ * Roles operativos de Staff en el sistema Savana Data Coffee.
+ * Determinados según la tabla hija (administrador o empleado).
  */
 public enum RolUsuario {
     ADMINISTRADOR,
-    BARISTA,
-    CAJERO;
+    EMPLEADO;
 
     public static boolean esValido(String rol) {
         if (rol == null) {

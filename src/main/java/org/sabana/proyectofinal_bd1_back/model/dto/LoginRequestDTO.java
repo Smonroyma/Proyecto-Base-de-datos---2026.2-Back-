@@ -1,5 +1,6 @@
 package org.sabana.proyectofinal_bd1_back.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,22 +10,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO para la petición de inicio de sesión primario.
+ * DTO para la petición de inicio de sesión primario del Staff.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Credenciales para el inicio de sesión")
+@Schema(description = "Credenciales para el inicio de sesión del Staff")
 public class LoginRequestDTO {
 
     @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El formato de correo no es válido")
-    @Schema(description = "Correo electrónico del usuario", example = "admin@savanacoffee.com")
-    private String email;
+    @JsonAlias({"email"})
+    @Schema(description = "Correo electrónico del miembro del staff", example = "admin@savanacoffee.com")
+    private String correo;
 
     @NotBlank(message = "La contraseña es obligatoria")
-    @Schema(description = "Contraseña del usuario", example = "Admin123*")
-    private String password;
+    @JsonAlias({"password"})
+    @Schema(description = "Contraseña del usuario", example = "Password123")
+    private String contrasena;
 
 }

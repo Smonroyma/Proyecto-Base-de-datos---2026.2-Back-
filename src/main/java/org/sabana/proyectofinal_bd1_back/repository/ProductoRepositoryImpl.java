@@ -9,7 +9,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Types;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,10 +21,10 @@ public class ProductoRepositoryImpl implements ProductoRepository {
     private final JdbcTemplate jdbcTemplate;
 
     private static final String BASE_SELECT = """
-            SELECT p.id_producto, p.nombre, p.descripcion, p.precio, p.id_categoria,\s
-                   c.nombre AS nombre_categoria, p.imagen_url, p.disponible, p.stock
+            SELECT p.id_producto, p.nombre, p.descripcion, p.precio, p.disponibilidad,
+                   p.stock, p.imagen_url, p.nombre_categoria
             FROM producto p
-            LEFT JOIN categoria c ON p.id_categoria = c.id_categoria
+            INNER JOIN categoria c ON p.nombre_categoria = c.nombre_categoria
             """;
 
     private final RowMapper<Producto> productoRowMapper = (rs, rowNum) -> Producto.builder()
@@ -33,11 +32,10 @@ public class ProductoRepositoryImpl implements ProductoRepository {
             .nombre(rs.getString("nombre"))
             .descripcion(rs.getString("descripcion"))
             .precio(rs.getDouble("precio"))
-            .idCategoria(rs.getObject("id_categoria") != null ? rs.getLong("id_categoria") : null)
-            .nombreCategoria(rs.getString("nombre_categoria"))
-            .imagenUrl(rs.getString("imagen_url"))
-            .disponible(rs.getBoolean("disponible"))
+            .disponibilidad(rs.getBoolean("disponibilidad"))
             .stock(rs.getInt("stock"))
+            .imagenUrl(rs.getString("imagen_url"))
+            .nombreCategoria(rs.getString("nombre_categoria"))
             .build();
 
     public ProductoRepositoryImpl(JdbcTemplate jdbcTemplate) {
@@ -62,44 +60,40 @@ public class ProductoRepositoryImpl implements ProductoRepository {
     }
 
     @Override
-    public List<Producto> findByCategoria(Long idCategoria) {
-        String sql = BASE_SELECT + " WHERE p.id_categoria = ? ORDER BY p.id_producto ASC";
-        return jdbcTemplate.query(sql, productoRowMapper, idCategoria);
+    public List<Producto> findByCategoria(String nombreCategoria) {
+        String sql = BASE_SELECT + " WHERE LOWER(TRIM(p.nombre_categoria)) = LOWER(TRIM(?)) ORDER BY p.id_producto ASC";
+        return jdbcTemplate.query(sql, productoRowMapper, nombreCategoria);
     }
 
     @Override
-    public List<Producto> findByDisponible(Boolean disponible) {
-        String sql = BASE_SELECT + " WHERE p.disponible = ? ORDER BY p.id_producto ASC";
-        return jdbcTemplate.query(sql, productoRowMapper, disponible);
+    public List<Producto> findByDisponibilidad(Boolean disponibilidad) {
+        String sql = BASE_SELECT + " WHERE p.disponibilidad = ? ORDER BY p.id_producto ASC";
+        return jdbcTemplate.query(sql, productoRowMapper, disponibilidad);
     }
 
     @Override
-    public List<Producto> findByCategoriaAndDisponible(Long idCategoria, Boolean disponible) {
-        String sql = BASE_SELECT + " WHERE p.id_categoria = ? AND p.disponible = ? ORDER BY p.id_producto ASC";
-        return jdbcTemplate.query(sql, productoRowMapper, idCategoria, disponible);
+    public List<Producto> findByCategoriaAndDisponibilidad(String nombreCategoria, Boolean disponibilidad) {
+        String sql = BASE_SELECT + " WHERE LOWER(TRIM(p.nombre_categoria)) = LOWER(TRIM(?)) AND p.disponibilidad = ? ORDER BY p.id_producto ASC";
+        return jdbcTemplate.query(sql, productoRowMapper, nombreCategoria, disponibilidad);
     }
 
     @Override
     public Producto save(Producto producto) {
         String sql = """
-                INSERT INTO producto (nombre, descripcion, precio, id_categoria, imagen_url, disponible, stock)
+                INSERT INTO producto (nombre, descripcion, precio, disponibilidad, stock, imagen_url, nombre_categoria)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] { "id_producto" });
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id_producto"});
             ps.setString(1, producto.getNombre());
             ps.setString(2, producto.getDescripcion());
             ps.setDouble(3, producto.getPrecio());
-            if (producto.getIdCategoria() != null) {
-                ps.setLong(4, producto.getIdCategoria());
-            } else {
-                ps.setNull(4, Types.BIGINT);
-            }
-            ps.setString(5, producto.getImagenUrl());
-            ps.setBoolean(6, producto.getDisponible() != null && producto.getDisponible());
-            ps.setInt(7, producto.getStock() != null ? producto.getStock() : 0);
+            ps.setBoolean(4, producto.getDisponibilidad() != null && producto.getDisponibilidad());
+            ps.setInt(5, producto.getStock() != null ? producto.getStock() : 0);
+            ps.setString(6, producto.getImagenUrl());
+            ps.setString(7, producto.getNombreCategoria());
             return ps;
         }, keyHolder);
 
@@ -114,7 +108,7 @@ public class ProductoRepositoryImpl implements ProductoRepository {
     public Producto update(Producto producto) {
         String sql = """
                 UPDATE producto
-                SET nombre = ?, descripcion = ?, precio = ?, id_categoria = ?, imagen_url = ?, disponible = ?, stock = ?
+                SET nombre = ?, descripcion = ?, precio = ?, disponibilidad = ?, stock = ?, imagen_url = ?, nombre_categoria = ?
                 WHERE id_producto = ?
                 """;
         jdbcTemplate.update(
@@ -122,10 +116,10 @@ public class ProductoRepositoryImpl implements ProductoRepository {
                 producto.getNombre(),
                 producto.getDescripcion(),
                 producto.getPrecio(),
-                producto.getIdCategoria(),
-                producto.getImagenUrl(),
-                producto.getDisponible(),
+                producto.getDisponibilidad(),
                 producto.getStock(),
+                producto.getImagenUrl(),
+                producto.getNombreCategoria(),
                 producto.getIdProducto()
         );
         return producto;

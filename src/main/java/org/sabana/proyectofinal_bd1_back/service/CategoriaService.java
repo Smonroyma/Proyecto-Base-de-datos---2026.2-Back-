@@ -10,14 +10,14 @@ import java.util.List;
  */
 public interface CategoriaService {
 
-    List<CategoriaResponseDTO> obtenerCategorias(Boolean soloActivas);
+    List<CategoriaResponseDTO> obtenerCategorias(String estado);
 
-    CategoriaResponseDTO buscarPorId(Long id);
+    CategoriaResponseDTO buscarPorNombre(String nombreCategoria);
 
     CategoriaResponseDTO crear(CategoriaRequestDTO requestDTO);
 
-    CategoriaResponseDTO actualizar(Long id, CategoriaRequestDTO requestDTO);
+    CategoriaResponseDTO actualizar(String nombreCategoria, CategoriaRequestDTO requestDTO);
 
-    void eliminar(Long id);
+    void eliminar(String nombreCategoria);
 
 }

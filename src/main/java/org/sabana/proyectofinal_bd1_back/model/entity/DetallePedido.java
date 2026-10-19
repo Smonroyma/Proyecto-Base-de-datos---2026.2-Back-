@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * Entidad de dominio DetallePedido.
- * Representa cada ítem individual dentro de un Pedido sin anotaciones JPA.
  */
 @Data
 @Builder

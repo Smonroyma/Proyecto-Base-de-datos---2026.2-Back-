@@ -11,7 +11,7 @@ import java.util.Optional;
  */
 public interface FacturaRepository {
 
-    Optional<Factura> findById(Long id);
+    Optional<Factura> findByNumFactura(String numFactura);
 
     List<Factura> findAll();
 
@@ -22,8 +22,6 @@ public interface FacturaRepository {
     List<Factura> findByRangoFechas(LocalDateTime fechaInicio, LocalDateTime fechaFin);
 
     Factura save(Factura factura);
-
-    boolean updateEstado(Long idFactura, String nuevoEstado);
 
     String generarSiguienteNumeroFactura();
 

@@ -15,11 +15,11 @@ public interface ProductoRepository {
 
     List<Producto> findAll();
 
-    List<Producto> findByCategoria(Long idCategoria);
+    List<Producto> findByCategoria(String nombreCategoria);
 
-    List<Producto> findByDisponible(Boolean disponible);
+    List<Producto> findByDisponibilidad(Boolean disponibilidad);
 
-    List<Producto> findByCategoriaAndDisponible(Long idCategoria, Boolean disponible);
+    List<Producto> findByCategoriaAndDisponibilidad(String nombreCategoria, Boolean disponibilidad);
 
     Producto save(Producto producto);
 

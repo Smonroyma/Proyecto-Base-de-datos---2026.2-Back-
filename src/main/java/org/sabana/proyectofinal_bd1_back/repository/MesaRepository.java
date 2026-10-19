@@ -10,23 +10,21 @@ import java.util.Optional;
  */
 public interface MesaRepository {
 
-    Optional<Mesa> findById(Long id);
+    Optional<Mesa> findByNumeroMesa(Integer numeroMesa);
 
     List<Mesa> findAll();
 
     List<Mesa> findByEstado(String estado);
 
-    Optional<Mesa> findByNumero(Integer numero);
-
     Mesa save(Mesa mesa);
 
     Mesa update(Mesa mesa);
 
-    boolean deleteById(Long id);
+    boolean updateEstado(Integer numeroMesa, String estado);
 
-    boolean existsByNumero(Integer numero);
+    boolean deleteByNumeroMesa(Integer numeroMesa);
 
-    boolean existsByNumeroAndNotId(Integer numero, Long id);
+    boolean existsByNumeroMesa(Integer numeroMesa);
 
     long countByEstado(String estado);
 

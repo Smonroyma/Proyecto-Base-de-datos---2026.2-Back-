@@ -13,9 +13,10 @@ import java.util.List;
 public interface PagoMapper {
 
     @Mapping(target = "idPago", ignore = true)
-    @Mapping(target = "idFactura", ignore = true)
+    @Mapping(target = "numFactura", ignore = true)
     @Mapping(target = "nombreMetodoPago", ignore = true)
-    @Mapping(target = "fechaHora", ignore = true)
+    @Mapping(target = "fecha", ignore = true)
+    @Mapping(target = "estado", ignore = true)
     PagoFactura toEntity(PagoRequestDTO dto);
 
     PagoResponseDTO toResponseDTO(PagoFactura entity);

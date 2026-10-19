@@ -14,25 +14,30 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.service.UsuarioService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ErrorResponseDTO;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * Controlador REST para la gestión y administración de usuarios.
+ * Controlador REST para la gestión y administración de Staff (Administradores y Empleados).
  * Protegido para acceso exclusivo de usuarios con rol ADMINISTRADOR.
  */
 @RestController
-@RequestMapping("/api/usuarios")
-@Tag(name = "Usuarios", description = "Endpoints administrativos para la gestión de usuarios (Requiere rol ADMINISTRADOR)")
+@RequestMapping({"/api/usuarios", "/api/staff", "/api/empleados"})
+@Tag(name = "Staff / Usuarios", description = "Endpoints administrativos para la gestión de Administradores y Empleados (Exclusivo rol ADMINISTRADOR)")
 @SecurityRequirement(name = "Bearer Authentication")
 @PreAuthorize("hasRole('ADMINISTRADOR')")
 public class UsuarioController {
@@ -44,16 +49,14 @@ public class UsuarioController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todos los usuarios", description = "Obtiene la lista completa de empleados y administradores.")
+    @Operation(summary = "Listar todo el Staff", description = "Obtiene la lista completa de empleados y administradores registrados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista de usuarios obtenida exitosamente",
+            @ApiResponse(responseCode = "200", description = "Lista de staff obtenida exitosamente",
                     content = @Content(mediaType = "application/json",
                             array = @ArraySchema(schema = @Schema(implementation = UsuarioResponseDTO.class)))),
             @ApiResponse(responseCode = "401", description = "No autenticado o token JWT inválido",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "403", description = "Acceso denegado (Requiere rol ADMINISTRADOR)",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<List<UsuarioResponseDTO>> obtenerTodos() {
@@ -62,15 +65,11 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Buscar usuario por ID", description = "Retorna los datos de un usuario dado su ID único.")
+    @Operation(summary = "Buscar miembro de Staff por ID", description = "Retorna los datos de un administrador o empleado dado su ID único.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Usuario encontrado",
+            @ApiResponse(responseCode = "200", description = "Miembro de staff encontrado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "401", description = "No autenticado",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<UsuarioResponseDTO> buscarPorId(
@@ -80,8 +79,23 @@ public class UsuarioController {
         return ResponseEntity.ok(usuario);
     }
 
+    @PostMapping
+    @Operation(summary = "Crear nuevo miembro de Staff", description = "Registra un nuevo empleado o administrador en las tablas staff y empleado/administrador.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Miembro de staff creado exitosamente",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "Correo ya registrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
+    })
+    public ResponseEntity<UsuarioResponseDTO> crear(@Valid @RequestBody UsuarioRequestDTO requestDTO) {
+        UsuarioResponseDTO creado = usuarioService.crear(requestDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    }
+
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar usuario existente", description = "Modifica los datos de un usuario existente.")
+    @Operation(summary = "Actualizar miembro de Staff existente", description = "Modifica los datos de un miembro de staff existente.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Usuario actualizado exitosamente",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
@@ -93,22 +107,45 @@ public class UsuarioController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<UsuarioResponseDTO> actualizar(
-            @Parameter(description = "Identificador único del usuario a actualizar", example = "1", required = true)
+            @Parameter(description = "Identificador único del usuario a actualizar", example = "2", required = true)
             @PathVariable Long id,
             @Valid @RequestBody UsuarioRequestDTO requestDTO) {
         UsuarioResponseDTO actualizado = usuarioService.actualizar(id, requestDTO);
         return ResponseEntity.ok(actualizado);
     }
 
+    @PatchMapping("/{id}/estado")
+    @Operation(summary = "Activar o desactivar Empleado", description = "Actualiza el estado operativo de un empleado (ACTIVO o INACTIVO).")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Estado del empleado actualizado exitosamente",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Estado inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Empleado no encontrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
+    })
+    public ResponseEntity<UsuarioResponseDTO> cambiarEstado(
+            @Parameter(description = "Identificador único del empleado", example = "2", required = true)
+            @PathVariable Long id,
+            @RequestParam(name = "estado", required = false) String estadoParam,
+            @RequestBody(required = false) Map<String, String> body) {
+        String nuevoEstado = estadoParam;
+        if ((nuevoEstado == null || nuevoEstado.isBlank()) && body != null) {
+            nuevoEstado = body.getOrDefault("estado", body.get("nuevoEstado"));
+        }
+        UsuarioResponseDTO actualizado = usuarioService.cambiarEstado(id, nuevoEstado);
+        return ResponseEntity.ok(actualizado);
+    }
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar usuario", description = "Elimina permanentemente un usuario del sistema.")
+    @Operation(summary = "Eliminar miembro de Staff", description = "Elimina permanentemente un miembro de staff del sistema.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Usuario eliminado exitosamente"),
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<Void> eliminar(
-            @Parameter(description = "Identificador único del usuario a eliminar", example = "1", required = true)
+            @Parameter(description = "Identificador único del usuario a eliminar", example = "2", required = true)
             @PathVariable Long id) {
         usuarioService.eliminar(id);
         return ResponseEntity.noContent().build();

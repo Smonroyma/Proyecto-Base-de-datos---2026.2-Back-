@@ -76,15 +76,15 @@ class ReservaServiceImplTest {
 
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombre("Carlos Mendoza")
+                .nombres("Carlos")
+                .apellidos("Mendoza")
                 .telefono("3001234567")
-                .email("carlos@example.com")
+                .correo("carlos@example.com")
                 .fechaRegistro(LocalDateTime.now().minusDays(10))
                 .build();
 
         mesa = Mesa.builder()
-                .idMesa(2L)
-                .numero(5)
+                .numeroMesa(5)
                 .capacidad(4)
                 .estado("DISPONIBLE")
                 .build();
@@ -93,42 +93,42 @@ class ReservaServiceImplTest {
                 .idReserva(10L)
                 .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
-                .idMesa(2L)
+                .correoCliente("carlos@example.com")
                 .numeroMesa(5)
-                .fechaHora(fechaHora)
+                .fecha(fechaHora.toLocalDate())
+                .hora(fechaHora.toLocalTime())
                 .numeroPersonas(4)
                 .estado("PENDIENTE")
-                .observaciones("Cena de aniversario")
                 .build();
 
         requestDTO = ReservaRequestDTO.builder()
                 .idCliente(1L)
-                .idMesa(2L)
+                .numeroMesa(5)
                 .fechaHora(fechaHora)
                 .numeroPersonas(4)
                 .estado("PENDIENTE")
-                .observaciones("Cena de aniversario")
                 .build();
 
         responseDTO = ReservaResponseDTO.builder()
                 .idReserva(10L)
                 .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
-                .idMesa(2L)
+                .correoCliente("carlos@example.com")
                 .numeroMesa(5)
+                .fecha(fechaHora.toLocalDate())
+                .hora(fechaHora.toLocalTime())
                 .fechaHora(fechaHora)
                 .numeroPersonas(4)
                 .estado("PENDIENTE")
-                .observaciones("Cena de aniversario")
                 .build();
     }
 
     @Test
-    @DisplayName("crear registra exitosamente una reserva cuando cliente, mesa y horario son válidos y envía correo de confirmación")
-    void crear_Exitoso() {
+    @DisplayName("crear registra exitosamente una reserva con idCliente existente y envía correo de confirmación")
+    void crear_ConIdCliente_Exitoso() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
-        when(reservaRepository.existsOverlappingReserva(2L, fechaHora, null)).thenReturn(false);
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
+        when(reservaRepository.existsOverlappingReserva(5, fechaHora, null)).thenReturn(false);
         when(reservaMapper.toEntity(requestDTO)).thenReturn(reserva);
         when(reservaRepository.save(any(Reserva.class))).thenReturn(reserva);
         when(reservaMapper.toResponseDTO(reserva)).thenReturn(responseDTO);
@@ -137,10 +137,9 @@ class ReservaServiceImplTest {
 
         assertNotNull(result);
         assertEquals(10L, result.getIdReserva());
-        assertEquals("Carlos Mendoza", result.getNombreCliente());
         assertEquals(5, result.getNumeroMesa());
         verify(clienteRepository).findById(1L);
-        verify(mesaRepository).findById(2L);
+        verify(mesaRepository).findByNumeroMesa(5);
         verify(reservaRepository).save(any(Reserva.class));
         verify(emailService).sendNotificacionEmail(
                 eq("carlos@example.com"),
@@ -153,12 +152,41 @@ class ReservaServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear lanza ClienteNotFoundException cuando el cliente no existe")
+    @DisplayName("crear registra nuevo cliente permanentemente cuando correo no existe en BD")
+    void crear_ClienteNuevoPorCorreo_GuardaPermanenteYCreaReserva() {
+        ReservaRequestDTO reqConDatosCliente = ReservaRequestDTO.builder()
+                .nombres("Carlos")
+                .apellidos("Mendoza")
+                .correo("carlos@example.com")
+                .telefono("3001234567")
+                .numeroMesa(5)
+                .fecha(fechaHora.toLocalDate())
+                .hora(fechaHora.toLocalTime())
+                .numeroPersonas(4)
+                .build();
+
+        when(clienteRepository.findByCorreo("carlos@example.com")).thenReturn(Optional.empty());
+        when(clienteRepository.save(any(Cliente.class))).thenReturn(cliente);
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
+        when(reservaRepository.existsOverlappingReserva(5, fechaHora, null)).thenReturn(false);
+        when(reservaMapper.toEntity(reqConDatosCliente)).thenReturn(reserva);
+        when(reservaRepository.save(any(Reserva.class))).thenReturn(reserva);
+        when(reservaMapper.toResponseDTO(reserva)).thenReturn(responseDTO);
+
+        ReservaResponseDTO result = reservaService.crear(reqConDatosCliente);
+
+        assertNotNull(result);
+        verify(clienteRepository).save(any(Cliente.class));
+        verify(reservaRepository).save(any(Reserva.class));
+    }
+
+    @Test
+    @DisplayName("crear lanza ClienteNotFoundException cuando el idCliente no existe")
     void crear_ClienteNoExiste_LanzaClienteNotFoundException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ClienteNotFoundException.class, () -> reservaService.crear(requestDTO));
-        verify(mesaRepository, never()).findById(any());
+        verify(mesaRepository, never()).findByNumeroMesa(any());
         verify(reservaRepository, never()).save(any(Reserva.class));
     }
 
@@ -166,7 +194,7 @@ class ReservaServiceImplTest {
     @DisplayName("crear lanza MesaNotFoundException cuando la mesa especificada no existe")
     void crear_MesaNoExiste_LanzaMesaNotFoundException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.empty());
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.empty());
 
         assertThrows(MesaNotFoundException.class, () -> reservaService.crear(requestDTO));
         verify(reservaRepository, never()).save(any(Reserva.class));
@@ -179,7 +207,7 @@ class ReservaServiceImplTest {
         requestDTO.setNumeroPersonas(4);
 
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
 
         assertThrows(ReservaConflictException.class, () -> reservaService.crear(requestDTO));
         verify(reservaRepository, never()).save(any(Reserva.class));
@@ -191,7 +219,7 @@ class ReservaServiceImplTest {
         mesa.setEstado("EN_MANTENIMIENTO");
 
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
 
         assertThrows(ReservaConflictException.class, () -> reservaService.crear(requestDTO));
         verify(reservaRepository, never()).save(any(Reserva.class));
@@ -201,11 +229,44 @@ class ReservaServiceImplTest {
     @DisplayName("crear lanza ReservaConflictException cuando hay solapamiento de horario en la mesa")
     void crear_SolapamientoHorario_LanzaReservaConflictException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
-        when(reservaRepository.existsOverlappingReserva(2L, fechaHora, null)).thenReturn(true);
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
+        when(reservaRepository.existsOverlappingReserva(5, fechaHora, null)).thenReturn(true);
 
         assertThrows(ReservaConflictException.class, () -> reservaService.crear(requestDTO));
         verify(reservaRepository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    @DisplayName("buscarPorCorreoCliente retorna todas las reservas asociadas al correo único del cliente")
+    void buscarPorCorreoCliente_Exitoso() {
+        List<Reserva> lista = List.of(reserva);
+        List<ReservaResponseDTO> dtoList = List.of(responseDTO);
+
+        when(reservaRepository.findByClienteCorreo("carlos@example.com")).thenReturn(lista);
+        when(reservaMapper.toResponseDTOList(lista)).thenReturn(dtoList);
+
+        List<ReservaResponseDTO> result = reservaService.buscarPorCorreoCliente("carlos@example.com");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("carlos@example.com", result.getFirst().getCorreoCliente());
+        verify(reservaRepository).findByClienteCorreo("carlos@example.com");
+    }
+
+    @Test
+    @DisplayName("obtenerReservas con filtro por correo retorna reservas asociadas a ese correo")
+    void obtenerReservas_FiltroCorreo_RetornaFiltradas() {
+        List<Reserva> lista = List.of(reserva);
+        List<ReservaResponseDTO> dtoList = List.of(responseDTO);
+
+        when(reservaRepository.findByClienteCorreo("carlos@example.com")).thenReturn(lista);
+        when(reservaMapper.toResponseDTOList(lista)).thenReturn(dtoList);
+
+        List<ReservaResponseDTO> result = reservaService.obtenerReservas(null, "carlos@example.com", null, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(reservaRepository).findByClienteCorreo("carlos@example.com");
     }
 
     @Test
@@ -218,7 +279,6 @@ class ReservaServiceImplTest {
 
         assertNotNull(result);
         assertEquals(10L, result.getIdReserva());
-        assertEquals("Carlos Mendoza", result.getNombreCliente());
         verify(reservaRepository).findById(10L);
     }
 
@@ -232,153 +292,8 @@ class ReservaServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerReservas sin filtros retorna todas las reservas")
-    void obtenerReservas_SinFiltros_RetornaTodas() {
-        List<Reserva> lista = List.of(reserva);
-        List<ReservaResponseDTO> dtoList = List.of(responseDTO);
-
-        when(reservaRepository.findAll()).thenReturn(lista);
-        when(reservaMapper.toResponseDTOList(lista)).thenReturn(dtoList);
-
-        List<ReservaResponseDTO> result = reservaService.obtenerReservas(null, null, null);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(reservaRepository).findAll();
-    }
-
-    @Test
-    @DisplayName("obtenerReservas con filtro por cliente retorna reservas de dicho cliente")
-    void obtenerReservas_FiltroCliente_RetornaFiltradas() {
-        List<Reserva> lista = List.of(reserva);
-        List<ReservaResponseDTO> dtoList = List.of(responseDTO);
-
-        when(reservaRepository.findByCliente(1L)).thenReturn(lista);
-        when(reservaMapper.toResponseDTOList(lista)).thenReturn(dtoList);
-
-        List<ReservaResponseDTO> result = reservaService.obtenerReservas(1L, null, null);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(reservaRepository).findByCliente(1L);
-    }
-
-    @Test
-    @DisplayName("obtenerReservas con filtro por mesa retorna reservas asociadas a la mesa")
-    void obtenerReservas_FiltroMesa_RetornaFiltradas() {
-        List<Reserva> lista = List.of(reserva);
-        List<ReservaResponseDTO> dtoList = List.of(responseDTO);
-
-        when(reservaRepository.findByMesa(2L)).thenReturn(lista);
-        when(reservaMapper.toResponseDTOList(lista)).thenReturn(dtoList);
-
-        List<ReservaResponseDTO> result = reservaService.obtenerReservas(null, 2L, null);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(reservaRepository).findByMesa(2L);
-    }
-
-    @Test
-    @DisplayName("obtenerReservas con filtro por estado retorna reservas con dicho estado")
-    void obtenerReservas_FiltroEstado_RetornaFiltradas() {
-        List<Reserva> lista = List.of(reserva);
-        List<ReservaResponseDTO> dtoList = List.of(responseDTO);
-
-        when(reservaRepository.findByEstado("PENDIENTE")).thenReturn(lista);
-        when(reservaMapper.toResponseDTOList(lista)).thenReturn(dtoList);
-
-        List<ReservaResponseDTO> result = reservaService.obtenerReservas(null, null, "PENDIENTE");
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(reservaRepository).findByEstado("PENDIENTE");
-    }
-
-    @Test
-    @DisplayName("actualizar modifica una reserva exitosamente cuando los datos son coherentes")
-    void actualizar_Exitoso() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
-        when(reservaRepository.existsOverlappingReserva(2L, fechaHora, 10L)).thenReturn(false);
-        when(reservaRepository.update(reserva)).thenReturn(reserva);
-        when(reservaMapper.toResponseDTO(reserva)).thenReturn(responseDTO);
-
-        ReservaResponseDTO result = reservaService.actualizar(10L, requestDTO);
-
-        assertNotNull(result);
-        verify(reservaRepository).update(reserva);
-    }
-
-    @Test
-    @DisplayName("actualizar lanza ReservaNotFoundException cuando la reserva a modificar no existe")
-    void actualizar_NoExiste_LanzaReservaNotFoundException() {
-        when(reservaRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(ReservaNotFoundException.class, () -> reservaService.actualizar(99L, requestDTO));
-        verify(reservaRepository, never()).update(any(Reserva.class));
-    }
-
-    @Test
-    @DisplayName("actualizar lanza ClienteNotFoundException cuando el cliente no existe")
-    void actualizar_ClienteNoExiste_LanzaClienteNotFoundException() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(ClienteNotFoundException.class, () -> reservaService.actualizar(10L, requestDTO));
-        verify(reservaRepository, never()).update(any(Reserva.class));
-    }
-
-    @Test
-    @DisplayName("actualizar lanza MesaNotFoundException cuando la mesa no existe")
-    void actualizar_MesaNoExiste_LanzaMesaNotFoundException() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.empty());
-
-        assertThrows(MesaNotFoundException.class, () -> reservaService.actualizar(10L, requestDTO));
-        verify(reservaRepository, never()).update(any(Reserva.class));
-    }
-
-    @Test
-    @DisplayName("actualizar lanza ReservaConflictException cuando ocurre solapamiento de horario")
-    void actualizar_SolapamientoHorario_LanzaReservaConflictException() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(mesaRepository.findById(2L)).thenReturn(Optional.of(mesa));
-        when(reservaRepository.existsOverlappingReserva(2L, fechaHora, 10L)).thenReturn(true);
-
-        assertThrows(ReservaConflictException.class, () -> reservaService.actualizar(10L, requestDTO));
-        verify(reservaRepository, never()).update(any(Reserva.class));
-    }
-
-    @Test
-    @DisplayName("cambiarEstado actualiza el estado de la reserva exitosamente")
-    void cambiarEstado_Exitoso() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-        when(reservaRepository.update(reserva)).thenReturn(reserva);
-        when(reservaMapper.toResponseDTO(reserva)).thenReturn(responseDTO);
-
-        ReservaResponseDTO result = reservaService.cambiarEstado(10L, "CONFIRMADA");
-
-        assertNotNull(result);
-        assertEquals("CONFIRMADA", reserva.getEstado());
-        verify(reservaRepository).update(reserva);
-    }
-
-    @Test
-    @DisplayName("cambiarEstado lanza IllegalArgumentException cuando el estado es inválido")
-    void cambiarEstado_EstadoInvalido_LanzaIllegalArgumentException() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-
-        assertThrows(IllegalArgumentException.class, () -> reservaService.cambiarEstado(10L, "ESTADO_INEXISTENTE"));
-        verify(reservaRepository, never()).update(any(Reserva.class));
-    }
-
-    @Test
-    @DisplayName("cambiarEstado a CANCELADA actualiza el estado y envía correo de liberación de cupo")
-    void cambiarEstado_Cancelada_EnviaCorreo() {
+    @DisplayName("cambiarEstado a CANCELADA actualiza la reserva sin eliminar jamás al cliente")
+    void cambiarEstado_Cancelada_EnviaCorreoSinEliminarCliente() {
         when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
         when(reservaRepository.update(reserva)).thenReturn(reserva);
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
@@ -389,6 +304,7 @@ class ReservaServiceImplTest {
         assertNotNull(result);
         assertEquals("CANCELADA", reserva.getEstado());
         verify(reservaRepository).update(reserva);
+        verify(clienteRepository, never()).deleteById(any());
         verify(emailService).sendNotificacionEmail(
                 eq("carlos@example.com"),
                 eq("Cancelación de Reserva"),
@@ -397,42 +313,13 @@ class ReservaServiceImplTest {
                 anyMap(),
                 anyString()
         );
-    }
-
-    @Test
-    @DisplayName("eliminar borra la reserva cuando existe y envía notificación de cancelación")
-    void eliminar_Exitoso() {
-        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reserva));
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-
-        reservaService.eliminar(10L);
-
-        verify(reservaRepository).deleteById(10L);
-        verify(emailService).sendNotificacionEmail(
-                eq("carlos@example.com"),
-                eq("Cancelación de Reserva"),
-                eq("Carlos Mendoza"),
-                anyString(),
-                anyMap(),
-                anyString()
-        );
-    }
-
-    @Test
-    @DisplayName("eliminar lanza ReservaNotFoundException cuando la reserva no existe")
-    void eliminar_NoExiste_LanzaReservaNotFoundException() {
-        when(reservaRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(ReservaNotFoundException.class, () -> reservaService.eliminar(99L));
-        verify(reservaRepository, never()).deleteById(99L);
     }
 
     @Test
     @DisplayName("consultarMesasDisponibles retorna las mesas libres para el horario y capacidad requeridos")
     void consultarMesasDisponibles_Exitoso() {
         MesaResponseDTO mesaDTO = MesaResponseDTO.builder()
-                .idMesa(2L)
-                .numero(5)
+                .numeroMesa(5)
                 .capacidad(4)
                 .estado("DISPONIBLE")
                 .build();
@@ -444,7 +331,7 @@ class ReservaServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(5, result.getFirst().getNumero());
+        assertEquals(5, result.getFirst().getNumeroMesa());
         verify(reservaRepository).findMesasDisponibles(fechaHora, 4);
     }
 

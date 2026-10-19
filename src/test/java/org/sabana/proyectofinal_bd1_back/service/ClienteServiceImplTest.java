@@ -49,23 +49,26 @@ class ClienteServiceImplTest {
 
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombre("Laura Gómez")
+                .nombres("Laura")
+                .apellidos("Gómez")
                 .telefono("+57 310 9876543")
-                .email("laura.gomez@savana.com")
+                .correo("laura.gomez@savana.com")
                 .fechaRegistro(now)
                 .build();
 
         requestDTO = ClienteRequestDTO.builder()
-                .nombre("Laura Gómez")
+                .nombres("Laura")
+                .apellidos("Gómez")
                 .telefono("+57 310 9876543")
-                .email("laura.gomez@savana.com")
+                .correo("laura.gomez@savana.com")
                 .build();
 
         responseDTO = ClienteResponseDTO.builder()
                 .idCliente(1L)
-                .nombre("Laura Gómez")
+                .nombres("Laura")
+                .apellidos("Gómez")
                 .telefono("+57 310 9876543")
-                .email("laura.gomez@savana.com")
+                .correo("laura.gomez@savana.com")
                 .fechaRegistro(now)
                 .build();
     }
@@ -80,7 +83,7 @@ class ClienteServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getIdCliente());
-        assertEquals("Laura Gómez", result.getNombre());
+        assertEquals("Laura", result.getNombres());
         verify(clienteRepository).findById(1L);
     }
 
@@ -110,9 +113,9 @@ class ClienteServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear registra un cliente exitosamente")
+    @DisplayName("crear registra un cliente permanentemente de forma exitosa")
     void crear_Exitoso() {
-        when(clienteRepository.existsByEmail(requestDTO.getEmail())).thenReturn(false);
+        when(clienteRepository.existsByCorreo(requestDTO.getCorreo())).thenReturn(false);
         when(clienteRepository.existsByTelefono(requestDTO.getTelefono())).thenReturn(false);
         when(clienteMapper.toEntity(requestDTO)).thenReturn(cliente);
         when(clienteRepository.save(any(Cliente.class))).thenReturn(cliente);
@@ -121,14 +124,14 @@ class ClienteServiceImplTest {
         ClienteResponseDTO result = clienteService.crear(requestDTO);
 
         assertNotNull(result);
-        assertEquals("Laura Gómez", result.getNombre());
+        assertEquals("laura.gomez@savana.com", result.getCorreo());
         verify(clienteRepository).save(any(Cliente.class));
     }
 
     @Test
-    @DisplayName("crear lanza ClienteAlreadyExistsException cuando el email ya existe")
-    void crear_EmailDuplicado_LanzaClienteAlreadyExistsException() {
-        when(clienteRepository.existsByEmail(requestDTO.getEmail())).thenReturn(true);
+    @DisplayName("crear lanza ClienteAlreadyExistsException cuando el correo ya existe")
+    void crear_CorreoDuplicado_LanzaClienteAlreadyExistsException() {
+        when(clienteRepository.existsByCorreo(requestDTO.getCorreo())).thenReturn(true);
 
         assertThrows(ClienteAlreadyExistsException.class, () -> clienteService.crear(requestDTO));
         verify(clienteRepository, never()).save(any(Cliente.class));
@@ -137,7 +140,7 @@ class ClienteServiceImplTest {
     @Test
     @DisplayName("crear lanza ClienteAlreadyExistsException cuando el teléfono ya existe")
     void crear_TelefonoDuplicado_LanzaClienteAlreadyExistsException() {
-        when(clienteRepository.existsByEmail(requestDTO.getEmail())).thenReturn(false);
+        when(clienteRepository.existsByCorreo(requestDTO.getCorreo())).thenReturn(false);
         when(clienteRepository.existsByTelefono(requestDTO.getTelefono())).thenReturn(true);
 
         assertThrows(ClienteAlreadyExistsException.class, () -> clienteService.crear(requestDTO));
@@ -148,7 +151,7 @@ class ClienteServiceImplTest {
     @DisplayName("actualizar modifica datos exitosamente cuando no hay colisiones")
     void actualizar_Exitoso() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(clienteRepository.existsByEmailAndNotId(requestDTO.getEmail(), 1L)).thenReturn(false);
+        when(clienteRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), 1L)).thenReturn(false);
         when(clienteRepository.existsByTelefonoAndNotId(requestDTO.getTelefono(), 1L)).thenReturn(false);
         when(clienteRepository.update(cliente)).thenReturn(cliente);
         when(clienteMapper.toResponseDTO(cliente)).thenReturn(responseDTO);
@@ -169,10 +172,10 @@ class ClienteServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizar lanza ClienteAlreadyExistsException cuando otro cliente tiene el mismo email")
-    void actualizar_EmailDuplicado_LanzaClienteAlreadyExistsException() {
+    @DisplayName("actualizar lanza ClienteAlreadyExistsException cuando otro cliente tiene el mismo correo")
+    void actualizar_CorreoDuplicado_LanzaClienteAlreadyExistsException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(clienteRepository.existsByEmailAndNotId(requestDTO.getEmail(), 1L)).thenReturn(true);
+        when(clienteRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), 1L)).thenReturn(true);
 
         assertThrows(ClienteAlreadyExistsException.class, () -> clienteService.actualizar(1L, requestDTO));
         verify(clienteRepository, never()).update(any(Cliente.class));
@@ -182,7 +185,7 @@ class ClienteServiceImplTest {
     @DisplayName("actualizar lanza ClienteAlreadyExistsException cuando otro cliente tiene el mismo teléfono")
     void actualizar_TelefonoDuplicado_LanzaClienteAlreadyExistsException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(clienteRepository.existsByEmailAndNotId(requestDTO.getEmail(), 1L)).thenReturn(false);
+        when(clienteRepository.existsByCorreoAndNotId(requestDTO.getCorreo(), 1L)).thenReturn(false);
         when(clienteRepository.existsByTelefonoAndNotId(requestDTO.getTelefono(), 1L)).thenReturn(true);
 
         assertThrows(ClienteAlreadyExistsException.class, () -> clienteService.actualizar(1L, requestDTO));
@@ -190,13 +193,37 @@ class ClienteServiceImplTest {
     }
 
     @Test
-    @DisplayName("eliminar borra el cliente cuando existe")
+    @DisplayName("eliminar limpia reservas históricas y borra el cliente cuando no tiene reservas activas ni pedidos")
     void eliminar_Exitoso() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(clienteRepository.hasActiveReservas(1L)).thenReturn(false);
+        when(clienteRepository.hasPedidosOrFacturas(1L)).thenReturn(false);
 
         clienteService.eliminar(1L);
 
+        verify(clienteRepository).deleteHistoricalReservasByClienteId(1L);
         verify(clienteRepository).deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("eliminar lanza IllegalStateException cuando el cliente tiene reservas activas")
+    void eliminar_ConReservasActivas_LanzaIllegalStateException() {
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(clienteRepository.hasActiveReservas(1L)).thenReturn(true);
+
+        assertThrows(IllegalStateException.class, () -> clienteService.eliminar(1L));
+        verify(clienteRepository, never()).deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("eliminar lanza IllegalStateException cuando el cliente tiene pedidos o facturas contables")
+    void eliminar_ConPedidosOFacturas_LanzaIllegalStateException() {
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(clienteRepository.hasActiveReservas(1L)).thenReturn(false);
+        when(clienteRepository.hasPedidosOrFacturas(1L)).thenReturn(true);
+
+        assertThrows(IllegalStateException.class, () -> clienteService.eliminar(1L));
+        verify(clienteRepository, never()).deleteById(1L);
     }
 
     @Test

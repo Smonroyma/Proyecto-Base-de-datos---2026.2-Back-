@@ -33,15 +33,16 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
-    public List<ProductoResponseDTO> obtenerProductos(Long categoriaId, Boolean disponible) {
+    public List<ProductoResponseDTO> obtenerProductos(String nombreCategoria, Boolean disponibilidad) {
         List<Producto> productos;
+        boolean tieneCategoria = nombreCategoria != null && !nombreCategoria.isBlank();
 
-        if (categoriaId != null && disponible != null) {
-            productos = productoRepository.findByCategoriaAndDisponible(categoriaId, disponible);
-        } else if (categoriaId != null) {
-            productos = productoRepository.findByCategoria(categoriaId);
-        } else if (disponible != null) {
-            productos = productoRepository.findByDisponible(disponible);
+        if (tieneCategoria && disponibilidad != null) {
+            productos = productoRepository.findByCategoriaAndDisponibilidad(nombreCategoria.trim(), disponibilidad);
+        } else if (tieneCategoria) {
+            productos = productoRepository.findByCategoria(nombreCategoria.trim());
+        } else if (disponibilidad != null) {
+            productos = productoRepository.findByDisponibilidad(disponibilidad);
         } else {
             productos = productoRepository.findAll();
         }
@@ -58,8 +59,10 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public ProductoResponseDTO crear(ProductoRequestDTO requestDTO) {
-        Categoria categoria = categoriaRepository.findById(requestDTO.getIdCategoria())
-                .orElseThrow(() -> new CategoriaNotFoundException(requestDTO.getIdCategoria()));
+        Categoria categoria = categoriaRepository.findByNombreCategoria(requestDTO.getNombreCategoria())
+                .orElseThrow(() -> new CategoriaNotFoundException(
+                        String.format("No se encontró la categoría: %s", requestDTO.getNombreCategoria())
+                ));
 
         String trimmedNombre = requestDTO.getNombre().trim();
 
@@ -70,6 +73,7 @@ public class ProductoServiceImpl implements ProductoService {
 
         Producto producto = productoMapper.toEntity(requestDTO);
         producto.setNombre(trimmedNombre);
+        producto.setNombreCategoria(categoria.getNombreCategoria());
         if (producto.getDescripcion() != null) {
             producto.setDescripcion(producto.getDescripcion().trim());
         }
@@ -78,7 +82,6 @@ public class ProductoServiceImpl implements ProductoService {
         }
 
         Producto guardado = productoRepository.save(producto);
-        guardado.setNombreCategoria(categoria.getNombre());
         return productoMapper.toResponseDTO(guardado);
     }
 
@@ -87,8 +90,10 @@ public class ProductoServiceImpl implements ProductoService {
         Producto productoExistente = productoRepository.findById(id)
                 .orElseThrow(() -> new ProductoNotFoundException(id));
 
-        Categoria categoria = categoriaRepository.findById(requestDTO.getIdCategoria())
-                .orElseThrow(() -> new CategoriaNotFoundException(requestDTO.getIdCategoria()));
+        Categoria categoria = categoriaRepository.findByNombreCategoria(requestDTO.getNombreCategoria())
+                .orElseThrow(() -> new CategoriaNotFoundException(
+                        String.format("No se encontró la categoría: %s", requestDTO.getNombreCategoria())
+                ));
 
         String trimmedNombre = requestDTO.getNombre().trim();
 
@@ -100,6 +105,7 @@ public class ProductoServiceImpl implements ProductoService {
         productoMapper.updateEntityFromDTO(requestDTO, productoExistente);
         productoExistente.setIdProducto(id);
         productoExistente.setNombre(trimmedNombre);
+        productoExistente.setNombreCategoria(categoria.getNombreCategoria());
         if (productoExistente.getDescripcion() != null) {
             productoExistente.setDescripcion(productoExistente.getDescripcion().trim());
         }
@@ -108,7 +114,6 @@ public class ProductoServiceImpl implements ProductoService {
         }
 
         Producto actualizado = productoRepository.update(productoExistente);
-        actualizado.setNombreCategoria(categoria.getNombre());
         return productoMapper.toResponseDTO(actualizado);
     }
 

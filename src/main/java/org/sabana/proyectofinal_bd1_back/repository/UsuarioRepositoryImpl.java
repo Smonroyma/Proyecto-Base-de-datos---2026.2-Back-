@@ -1,164 +1,241 @@
 package org.sabana.proyectofinal_bd1_back.repository;
 
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
+import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementación de UsuarioRepository utilizando consultas SQL nativas y JdbcTemplate.
+ * Implementación de UsuarioRepository utilizando consultas SQL nativas y JdbcTemplate
+ * realizando JOIN entre la tabla padre 'staff' y las tablas hijas 'administrador' y 'empleado'.
  */
 @Repository
 public class UsuarioRepositoryImpl implements UsuarioRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    private final RowMapper<Usuario> usuarioRowMapper = (rs, rowNum) -> Usuario.builder()
-            .idUsuario(rs.getLong("id_usuario"))
-            .nombre(rs.getString("nombre"))
-            .email(rs.getString("email"))
-            .passwordHash(rs.getString("password_hash"))
-            .rol(rs.getString("rol"))
-            .activo(rs.getBoolean("activo"))
-            .dosFactoresHabilitado(rs.getBoolean("dos_factores_habilitado"))
-            .codigoOtp(rs.getString("codigo_otp"))
-            .expiracionOtp(rs.getTimestamp("expiracion_otp") != null 
-                    ? rs.getTimestamp("expiracion_otp").toLocalDateTime() 
-                    : null)
-            .fechaRegistro(rs.getTimestamp("fecha_registro") != null 
-                    ? rs.getTimestamp("fecha_registro").toLocalDateTime() 
-                    : null)
-            .build();
+    private static final String BASE_SELECT = """
+            SELECT s.id_usuario, s.nombres, s.apellidos, s.correo, s.contrasena,
+                   s.dos_fac_hab, s.fecha_inicio,
+                   CASE WHEN a.id_usuario IS NOT NULL THEN 'ADMINISTRADOR' ELSE 'EMPLEADO' END AS rol,
+                   e.estado AS estado_empleado
+            FROM staff s
+            LEFT JOIN administrador a ON s.id_usuario = a.id_usuario
+            LEFT JOIN empleado e ON s.id_usuario = e.id_usuario
+            """;
+
+    private final RowMapper<Staff> staffRowMapper = (rs, rowNum) -> {
+        Long idUsuario = rs.getLong("id_usuario");
+        String nombres = rs.getString("nombres");
+        String apellidos = rs.getString("apellidos");
+        String correo = rs.getString("correo");
+        String contrasena = rs.getString("contrasena");
+        boolean dosFacHab = rs.getBoolean("dos_fac_hab");
+        Date sqlDate = rs.getDate("fecha_inicio");
+        LocalDate fechaInicio = sqlDate != null ? sqlDate.toLocalDate() : LocalDate.now();
+        String rol = rs.getString("rol");
+
+        if ("ADMINISTRADOR".equalsIgnoreCase(rol)) {
+            return Administrador.builder()
+                    .idUsuario(idUsuario)
+                    .nombres(nombres)
+                    .apellidos(apellidos)
+                    .correo(correo)
+                    .contrasena(contrasena)
+                    .dosFacHab(dosFacHab)
+                    .fechaInicio(fechaInicio)
+                    .rol("ADMINISTRADOR")
+                    .build();
+        } else {
+            String estado = rs.getString("estado_empleado");
+            return Empleado.builder()
+                    .idUsuario(idUsuario)
+                    .nombres(nombres)
+                    .apellidos(apellidos)
+                    .correo(correo)
+                    .contrasena(contrasena)
+                    .dosFacHab(dosFacHab)
+                    .fechaInicio(fechaInicio)
+                    .rol("EMPLEADO")
+                    .estado(estado != null ? estado : "ACTIVO")
+                    .build();
+        }
+    };
 
     public UsuarioRepositoryImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
-    public Optional<Usuario> findById(Long id) {
-        String sql = "SELECT id_usuario, nombre, email, password_hash, rol, activo, dos_factores_habilitado, " +
-                "codigo_otp, expiracion_otp, fecha_registro FROM usuario WHERE id_usuario = ?";
+    public Optional<Staff> findById(Long id) {
+        String sql = BASE_SELECT + " WHERE s.id_usuario = ?";
         try {
-            Usuario usuario = jdbcTemplate.queryForObject(sql, usuarioRowMapper, id);
-            return Optional.ofNullable(usuario);
+            Staff staff = jdbcTemplate.queryForObject(sql, staffRowMapper, id);
+            return Optional.ofNullable(staff);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
 
     @Override
-    public Optional<Usuario> findByEmail(String email) {
-        String sql = "SELECT id_usuario, nombre, email, password_hash, rol, activo, dos_factores_habilitado, " +
-                "codigo_otp, expiracion_otp, fecha_registro FROM usuario WHERE LOWER(email) = LOWER(?)";
+    public Optional<Staff> findByCorreo(String correo) {
+        String sql = BASE_SELECT + " WHERE LOWER(TRIM(s.correo)) = LOWER(TRIM(?))";
         try {
-            Usuario usuario = jdbcTemplate.queryForObject(sql, usuarioRowMapper, email);
-            return Optional.ofNullable(usuario);
+            Staff staff = jdbcTemplate.queryForObject(sql, staffRowMapper, correo);
+            return Optional.ofNullable(staff);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
 
     @Override
-    public List<Usuario> findAll() {
-        String sql = "SELECT id_usuario, nombre, email, password_hash, rol, activo, dos_factores_habilitado, " +
-                "codigo_otp, expiracion_otp, fecha_registro FROM usuario ORDER BY id_usuario ASC";
-        return jdbcTemplate.query(sql, usuarioRowMapper);
+    public List<Staff> findAll() {
+        String sql = BASE_SELECT + " ORDER BY s.id_usuario ASC";
+        return jdbcTemplate.query(sql, staffRowMapper);
     }
 
     @Override
-    public Usuario save(Usuario usuario) {
-        String sql = "INSERT INTO usuario (nombre, email, password_hash, rol, activo, dos_factores_habilitado, " +
-                "codigo_otp, expiracion_otp, fecha_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    @Transactional
+    public Staff save(Staff staff) {
+        String sqlStaff = """
+                INSERT INTO staff (nombres, apellidos, correo, contrasena, dos_fac_hab, fecha_inicio)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """;
 
-        LocalDateTime fecha = usuario.getFechaRegistro() != null 
-                ? usuario.getFechaRegistro() 
-                : LocalDateTime.now();
-        boolean activo = usuario.getActivo() != null ? usuario.getActivo() : true;
-        boolean dosFactores = usuario.getDosFactoresHabilitado() != null ? usuario.getDosFactoresHabilitado() : false;
+        LocalDate fechaInicio = staff.getFechaInicio() != null ? staff.getFechaInicio() : LocalDate.now();
+        boolean dosFac = Boolean.TRUE.equals(staff.getDosFacHab());
+        String correoLower = staff.getCorreo().trim().toLowerCase();
+        String apellidos = staff.getApellidos() != null ? staff.getApellidos().trim() : "";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] { "id_usuario" });
-            ps.setString(1, usuario.getNombre());
-            ps.setString(2, usuario.getEmail().toLowerCase());
-            ps.setString(3, usuario.getPasswordHash());
-            ps.setString(4, usuario.getRol().toUpperCase());
-            ps.setBoolean(5, activo);
-            ps.setBoolean(6, dosFactores);
-            ps.setString(7, usuario.getCodigoOtp());
-            ps.setTimestamp(8, usuario.getExpiracionOtp() != null ? Timestamp.valueOf(usuario.getExpiracionOtp()) : null);
-            ps.setTimestamp(9, Timestamp.valueOf(fecha));
+            PreparedStatement ps = connection.prepareStatement(sqlStaff, new String[]{"id_usuario"});
+            ps.setString(1, staff.getNombres().trim());
+            ps.setString(2, apellidos);
+            ps.setString(3, correoLower);
+            ps.setString(4, staff.getContrasena());
+            ps.setBoolean(5, dosFac);
+            ps.setDate(6, Date.valueOf(fechaInicio));
             return ps;
         }, keyHolder);
 
         Number generatedKey = keyHolder.getKey();
         if (generatedKey != null) {
-            usuario.setIdUsuario(generatedKey.longValue());
+            staff.setIdUsuario(generatedKey.longValue());
         }
-        usuario.setActivo(activo);
-        usuario.setDosFactoresHabilitado(dosFactores);
-        usuario.setFechaRegistro(fecha);
-        usuario.setEmail(usuario.getEmail().toLowerCase());
-        usuario.setRol(usuario.getRol().toUpperCase());
-        return usuario;
+
+        String rol = staff.getRol() != null ? staff.getRol().trim().toUpperCase()
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "EMPLEADO");
+
+        if ("ADMINISTRADOR".equals(rol)) {
+            jdbcTemplate.update("INSERT INTO administrador (id_usuario) VALUES (?)", staff.getIdUsuario());
+            staff.setRol("ADMINISTRADOR");
+        } else {
+            String estado = "ACTIVO";
+            if (staff instanceof Empleado emp && emp.getEstado() != null && !emp.getEstado().isBlank()) {
+                estado = emp.getEstado().trim().toUpperCase();
+                emp.setEstado(estado);
+            }
+            jdbcTemplate.update("INSERT INTO empleado (id_usuario, estado) VALUES (?, ?)", staff.getIdUsuario(), estado);
+            staff.setRol("EMPLEADO");
+        }
+
+        staff.setCorreo(correoLower);
+        staff.setApellidos(apellidos);
+        staff.setDosFacHab(dosFac);
+        staff.setFechaInicio(fechaInicio);
+        return staff;
     }
 
     @Override
-    public Usuario update(Usuario usuario) {
-        String sql = "UPDATE usuario SET nombre = ?, email = ?, rol = ?, activo = ?, " +
-                "dos_factores_habilitado = ? WHERE id_usuario = ?";
+    @Transactional
+    public Staff update(Staff staff) {
+        String correoLower = staff.getCorreo().trim().toLowerCase();
+        String apellidos = staff.getApellidos() != null ? staff.getApellidos().trim() : "";
+        boolean dosFac = Boolean.TRUE.equals(staff.getDosFacHab());
+
+        String sqlUpdateStaff = """
+                UPDATE staff
+                SET nombres = ?, apellidos = ?, correo = ?, contrasena = ?, dos_fac_hab = ?
+                WHERE id_usuario = ?
+                """;
         jdbcTemplate.update(
-                sql,
-                usuario.getNombre(),
-                usuario.getEmail().toLowerCase(),
-                usuario.getRol().toUpperCase(),
-                usuario.getActivo(),
-                usuario.getDosFactoresHabilitado(),
-                usuario.getIdUsuario()
+                sqlUpdateStaff,
+                staff.getNombres().trim(),
+                apellidos,
+                correoLower,
+                staff.getContrasena(),
+                dosFac,
+                staff.getIdUsuario()
         );
-        return usuario;
+
+        String rol = staff.getRol() != null ? staff.getRol().trim().toUpperCase()
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "EMPLEADO");
+
+        if ("ADMINISTRADOR".equals(rol)) {
+            jdbcTemplate.update("DELETE FROM empleado WHERE id_usuario = ?", staff.getIdUsuario());
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM administrador WHERE id_usuario = ?", Integer.class, staff.getIdUsuario());
+            if (count == null || count == 0) {
+                jdbcTemplate.update("INSERT INTO administrador (id_usuario) VALUES (?)", staff.getIdUsuario());
+            }
+            staff.setRol("ADMINISTRADOR");
+        } else {
+            jdbcTemplate.update("DELETE FROM administrador WHERE id_usuario = ?", staff.getIdUsuario());
+            String estado = "ACTIVO";
+            if (staff instanceof Empleado emp && emp.getEstado() != null && !emp.getEstado().isBlank()) {
+                estado = emp.getEstado().trim().toUpperCase();
+                emp.setEstado(estado);
+            }
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM empleado WHERE id_usuario = ?", Integer.class, staff.getIdUsuario());
+            if (count == null || count == 0) {
+                jdbcTemplate.update("INSERT INTO empleado (id_usuario, estado) VALUES (?, ?)", staff.getIdUsuario(), estado);
+            } else {
+                jdbcTemplate.update("UPDATE empleado SET estado = ? WHERE id_usuario = ?", estado, staff.getIdUsuario());
+            }
+            staff.setRol("EMPLEADO");
+        }
+
+        staff.setCorreo(correoLower);
+        staff.setApellidos(apellidos);
+        staff.setDosFacHab(dosFac);
+        return staff;
     }
 
     @Override
+    @Transactional
     public boolean deleteById(Long id) {
-        String sql = "DELETE FROM usuario WHERE id_usuario = ?";
-        int rows = jdbcTemplate.update(sql, id);
+        jdbcTemplate.update("DELETE FROM administrador WHERE id_usuario = ?", id);
+        jdbcTemplate.update("DELETE FROM empleado WHERE id_usuario = ?", id);
+        int rows = jdbcTemplate.update("DELETE FROM staff WHERE id_usuario = ?", id);
         return rows > 0;
     }
 
     @Override
-    public boolean existsByEmail(String email) {
-        String sql = "SELECT COUNT(*) FROM usuario WHERE LOWER(email) = LOWER(?)";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
+    public boolean existsByCorreo(String correo) {
+        String sql = "SELECT COUNT(*) FROM staff WHERE LOWER(TRIM(correo)) = LOWER(TRIM(?))";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, correo);
         return count != null && count > 0;
     }
 
     @Override
-    public boolean existsByEmailAndNotId(String email, Long id) {
-        String sql = "SELECT COUNT(*) FROM usuario WHERE LOWER(email) = LOWER(?) AND id_usuario <> ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email, id);
+    public boolean existsByCorreoAndNotId(String correo, Long id) {
+        String sql = "SELECT COUNT(*) FROM staff WHERE LOWER(TRIM(correo)) = LOWER(TRIM(?)) AND id_usuario <> ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, correo, id);
         return count != null && count > 0;
-    }
-
-    @Override
-    public void guardarCodigoOTP(Long idUsuario, String codigoOtp, LocalDateTime expiracion) {
-        String sql = "UPDATE usuario SET codigo_otp = ?, expiracion_otp = ? WHERE id_usuario = ?";
-        jdbcTemplate.update(sql, codigoOtp, Timestamp.valueOf(expiracion), idUsuario);
-    }
-
-    @Override
-    public void limpiarCodigoOTP(Long idUsuario) {
-        String sql = "UPDATE usuario SET codigo_otp = NULL, expiracion_otp = NULL WHERE id_usuario = ?";
-        jdbcTemplate.update(sql, idUsuario);
     }
 
 }

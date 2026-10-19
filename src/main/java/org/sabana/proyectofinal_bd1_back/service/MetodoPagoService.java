@@ -12,14 +12,12 @@ public interface MetodoPagoService {
 
     List<MetodoPagoResponseDTO> obtenerMetodosPago(Boolean soloActivos);
 
-    MetodoPagoResponseDTO buscarPorId(Long id);
-
-    MetodoPagoResponseDTO buscarPorCodigo(String codigo);
+    MetodoPagoResponseDTO buscarPorTipo(String tipo);
 
     MetodoPagoResponseDTO crear(MetodoPagoRequestDTO requestDTO);
 
-    MetodoPagoResponseDTO actualizar(Long id, MetodoPagoRequestDTO requestDTO);
+    MetodoPagoResponseDTO actualizar(String tipo, MetodoPagoRequestDTO requestDTO);
 
-    void eliminar(Long id);
+    void eliminar(String tipo);
 
 }

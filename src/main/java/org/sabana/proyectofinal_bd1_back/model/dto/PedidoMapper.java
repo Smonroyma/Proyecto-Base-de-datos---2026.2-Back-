@@ -14,11 +14,10 @@ public interface PedidoMapper {
 
     @Mapping(target = "idPedido", ignore = true)
     @Mapping(target = "nombreCliente", ignore = true)
-    @Mapping(target = "numeroMesa", ignore = true)
     @Mapping(target = "nombreUsuario", ignore = true)
-    @Mapping(target = "fechaHora", ignore = true)
+    @Mapping(target = "fecha", ignore = true)
     @Mapping(target = "estado", ignore = true)
-    @Mapping(target = "total", ignore = true)
+    @Mapping(target = "subtotal", ignore = true)
     @Mapping(target = "detalles", ignore = true)
     Pedido toEntity(PedidoRequestDTO dto);
 

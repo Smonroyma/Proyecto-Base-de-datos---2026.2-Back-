@@ -16,16 +16,13 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Respuesta con los datos de una categoría del catálogo")
 public class CategoriaResponseDTO {
 
-    @Schema(description = "Identificador único de la categoría", example = "1")
-    private Long idCategoria;
+    @Schema(description = "Nombre único de la categoría (PK)", example = "Bebidas Calientes")
+    private String nombreCategoria;
 
-    @Schema(description = "Nombre de la categoría", example = "Bebidas Calientes")
-    private String nombre;
+    @Schema(description = "Estado de la categoría en el catálogo", example = "ACTIVA")
+    private String estado;
 
     @Schema(description = "Descripción de la categoría", example = "Cafés espresso, lattes, infusiones y tés calientes")
     private String descripcion;
-
-    @Schema(description = "Indica si la categoría está activa para ventas", example = "true")
-    private Boolean activo;
 
 }

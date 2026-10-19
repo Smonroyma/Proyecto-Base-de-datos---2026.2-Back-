@@ -5,7 +5,8 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
-import org.sabana.proyectofinal_bd1_back.model.entity.Usuario;
+import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
+import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -31,17 +32,23 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Genera un token JWT firmado para el usuario con claims de email, rol e idUsuario.
+     * Genera un token JWT firmado para el miembro de Staff con claims de correo, rol (ADMINISTRADOR o EMPLEADO) e idUsuario.
      */
-    public String generateToken(Usuario usuario) {
+    public String generateToken(Staff staff) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
+        String rol = staff.getRol() != null && !staff.getRol().isBlank()
+                ? staff.getRol().trim().toUpperCase()
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "EMPLEADO");
+
         return Jwts.builder()
-                .subject(usuario.getEmail())
-                .claim("idUsuario", usuario.getIdUsuario())
-                .claim("nombre", usuario.getNombre())
-                .claim("rol", usuario.getRol())
+                .subject(staff.getCorreo())
+                .claim("idUsuario", staff.getIdUsuario())
+                .claim("nombres", staff.getNombres())
+                .claim("apellidos", staff.getApellidos())
+                .claim("nombre", staff.getNombreCompleto())
+                .claim("rol", rol)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -49,7 +56,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Extrae el email (subject) del token JWT.
+     * Extrae el correo (subject) del token JWT.
      */
     public String getEmailFromToken(String token) {
         return getClaims(token).getSubject();

@@ -33,7 +33,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/pedidos")
-@Tag(name = "Pedidos", description = "Endpoints para la creación, consulta, control de estados y cancelación de pedidos")
+@Tag(name = "Pedidos", description = "Endpoints para la creación, consulta, control de estados unidireccional y cancelación de pedidos en mesa")
 public class PedidoController {
 
     private final PedidoService pedidoService;
@@ -44,8 +44,8 @@ public class PedidoController {
 
     @PostMapping
     @Operation(
-            summary = "Crear nuevo pedido",
-            description = "Registra un nuevo pedido y sus detalles, congela los precios unitarios de cada producto, calcula el total y descuenta el inventario de forma transaccional."
+            summary = "Crear nuevo pedido en mesa",
+            description = "Registra un nuevo pedido exclusivamente en mesa y sus detalles, congela los precios unitarios de cada producto, calcula el subtotal y descuenta el inventario de forma transaccional."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pedido registrado y procesado exitosamente",
@@ -54,13 +54,10 @@ public class PedidoController {
             @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o faltantes",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Cliente, mesa, usuario o producto no encontrado",
+            @ApiResponse(responseCode = "404", description = "Cliente, mesa, empleado o producto no encontrado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "422", description = "Stock insuficiente o producto no disponible",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
@@ -75,14 +72,6 @@ public class PedidoController {
             summary = "Consultar pedidos",
             description = "Obtiene la lista de pedidos con sus respectivos detalles. Permite filtrar opcionalmente por cliente y por estado."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista de pedidos obtenida exitosamente",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = PedidoResponseDTO.class)))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
     public ResponseEntity<List<PedidoResponseDTO>> obtenerPedidos(
             @Parameter(description = "Identificador opcional del cliente para filtrar", example = "1")
             @RequestParam(name = "clienteId", required = false) Long clienteId,
@@ -101,17 +90,6 @@ public class PedidoController {
             summary = "Consultar pedido por ID",
             description = "Retorna la información completa de un pedido específico junto con la lista detallada de sus ítems ordenados."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pedido encontrado exitosamente",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = PedidoResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Pedido no encontrado con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
     public ResponseEntity<PedidoResponseDTO> buscarPorId(
             @Parameter(description = "Identificador único del pedido", example = "1", required = true)
             @PathVariable Long id) {
@@ -121,20 +99,17 @@ public class PedidoController {
 
     @PatchMapping("/{id}/estado")
     @Operation(
-            summary = "Actualizar estado del pedido",
-            description = "Modifica el estado operativo del pedido (ej. de PENDIENTE a EN_PREPARACION, ENTREGADO o CANCELADO)."
+            summary = "Actualizar estado del pedido (Transición Unidireccional)",
+            description = "Modifica el estado operativo del pedido siguiendo el flujo estricto: PENDIENTE -> EN_PREPARACION (o CANCELADO) -> ENTREGADO -> PAGADO."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Estado del pedido actualizado exitosamente",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = PedidoResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Estado no válido o transición de estado ilegal",
+            @ApiResponse(responseCode = "400", description = "Estado no válido o intento de retroceso de estado prohibido",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Pedido no encontrado con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
@@ -142,15 +117,22 @@ public class PedidoController {
             @Parameter(description = "Identificador único del pedido a actualizar", example = "1", required = true)
             @PathVariable Long id,
             @RequestBody(required = false) ActualizarEstadoPedidoRequestDTO body,
-            @Parameter(description = "Nuevo estado opcional por query parameter si no se envía body", example = "EN_PREPARACION")
-            @RequestParam(name = "nuevoEstado", required = false) String paramEstado) {
+            @Parameter(description = "Nuevo estado opcional por query parameter", example = "EN_PREPARACION")
+            @RequestParam(name = "nuevoEstado", required = false) String paramNuevoEstado,
+            @Parameter(description = "Alias opcional del estado por query parameter", example = "EN_PREPARACION")
+            @RequestParam(name = "estado", required = false) String paramEstado) {
 
-        String estadoFinal = (body != null && body.getNuevoEstado() != null && !body.getNuevoEstado().isBlank())
-                ? body.getNuevoEstado()
-                : paramEstado;
+        String estadoFinal = null;
+        if (body != null && body.getNuevoEstado() != null && !body.getNuevoEstado().isBlank()) {
+            estadoFinal = body.getNuevoEstado();
+        } else if (paramNuevoEstado != null && !paramNuevoEstado.isBlank()) {
+            estadoFinal = paramNuevoEstado;
+        } else if (paramEstado != null && !paramEstado.isBlank()) {
+            estadoFinal = paramEstado;
+        }
 
         if (estadoFinal == null || estadoFinal.isBlank()) {
-            throw new IllegalArgumentException("Debe especificar el nuevo estado del pedido mediante el cuerpo o parámetro 'nuevoEstado'");
+            throw new IllegalArgumentException("Debe especificar el nuevo estado del pedido mediante el cuerpo JSON ('nuevoEstado' / 'estado') o query parameter");
         }
 
         PedidoResponseDTO pedidoActualizado = pedidoService.actualizarEstado(id, estadoFinal);
@@ -162,15 +144,6 @@ public class PedidoController {
             summary = "Eliminar pedido",
             description = "Elimina permanentemente un pedido y sus detalles asociados del sistema según su ID."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Pedido eliminado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Pedido no encontrado con el ID especificado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
     public ResponseEntity<Void> eliminarPedido(
             @Parameter(description = "Identificador único del pedido a eliminar", example = "1", required = true)
             @PathVariable Long id) {
