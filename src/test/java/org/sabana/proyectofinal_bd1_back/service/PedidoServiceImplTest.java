@@ -14,7 +14,7 @@ import org.sabana.proyectofinal_bd1_back.model.dto.PedidoRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.PedidoResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.Cliente;
 import org.sabana.proyectofinal_bd1_back.model.entity.DetallePedido;
-import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Mesero;
 import org.sabana.proyectofinal_bd1_back.model.entity.Mesa;
 import org.sabana.proyectofinal_bd1_back.model.entity.Pedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Producto;
@@ -31,6 +31,8 @@ import org.sabana.proyectofinal_bd1_back.util.exceptions.PedidoNotFoundException
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ProductoNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.StockInsuficienteException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.UsuarioNotFoundException;
+import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -76,7 +78,7 @@ class PedidoServiceImplTest {
     private PedidoServiceImpl pedidoService;
 
     private Cliente cliente;
-    private Staff empleado;
+    private Staff mesero;
     private Mesa mesa;
     private Producto producto;
     private Pedido pedido;
@@ -88,18 +90,18 @@ class PedidoServiceImplTest {
     void setUp() {
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombres("Carlos")
-                .apellidos("Mendoza")
+                .nombre("Carlos")
+                .apellido("Mendoza")
                 .telefono("3001234567")
                 .correo("carlos@example.com")
                 .build();
 
-        empleado = Empleado.builder()
+        mesero = Mesero.builder()
                 .idUsuario(2L)
                 .nombres("Ana")
                 .apellidos("Mesera")
                 .correo("ana@savanacoffee.com")
-                .rol("EMPLEADO")
+                .rol("MESERO")
                 .estado("ACTIVO")
                 .build();
 
@@ -119,13 +121,11 @@ class PedidoServiceImplTest {
                 .build();
 
         detalle = DetallePedido.builder()
-                .idDetallePedido(100L)
                 .idPedido(50L)
                 .idProducto(10L)
                 .nombreProducto("Café Americano")
                 .cantidad(2)
                 .precioUnitario(6500.0)
-                .subtotal(13000.0)
                 .build();
 
         pedido = Pedido.builder()
@@ -137,7 +137,6 @@ class PedidoServiceImplTest {
                 .nombreUsuario("Ana Mesera")
                 .fecha(LocalDateTime.now())
                 .estado("PENDIENTE")
-                .subtotal(13000.0)
                 .observaciones("Sin azúcar")
                 .detalles(new ArrayList<>(List.of(detalle)))
                 .build();
@@ -168,7 +167,7 @@ class PedidoServiceImplTest {
                 .observaciones("Sin azúcar")
                 .detalles(List.of(
                         DetallePedidoResponseDTO.builder()
-                                .idDetallePedido(100L)
+                                .idDetallePedido("50_10")
                                 .idProducto(10L)
                                 .nombreProducto("Café Americano")
                                 .cantidad(2)
@@ -183,7 +182,7 @@ class PedidoServiceImplTest {
     @DisplayName("crearPedido registra orden en mesa exitosamente, descuenta stock y calcula subtotal")
     void crearPedido_Exitoso() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
         when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
         when(productoRepository.updateStock(eq(10L), eq(18))).thenReturn(true);
@@ -235,7 +234,7 @@ class PedidoServiceImplTest {
     @DisplayName("crearPedido lanza MesaNotFoundException cuando la mesa especificada no existe")
     void crearPedido_MesaNoExiste_LanzaMesaNotFoundException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.empty());
 
         assertThrows(MesaNotFoundException.class, () -> pedidoService.crearPedido(requestDTO));
@@ -247,7 +246,7 @@ class PedidoServiceImplTest {
     void crearPedido_MesaEnMantenimiento_LanzaIllegalStateException() {
         mesa.setEstado("EN_MANTENIMIENTO");
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
 
         assertThrows(IllegalStateException.class, () -> pedidoService.crearPedido(requestDTO));
@@ -258,7 +257,7 @@ class PedidoServiceImplTest {
     @DisplayName("crearPedido lanza ProductoNotFoundException cuando un producto de los detalles no existe")
     void crearPedido_ProductoNoExiste_LanzaProductoNotFoundException() {
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
         when(productoRepository.findById(10L)).thenReturn(Optional.empty());
 
@@ -272,7 +271,7 @@ class PedidoServiceImplTest {
     void crearPedido_ProductoNoDisponible_LanzaStockInsuficienteException() {
         producto.setDisponibilidad(false);
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
         when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
 
@@ -286,7 +285,7 @@ class PedidoServiceImplTest {
     void crearPedido_StockInsuficiente_LanzaStockInsuficienteException() {
         producto.setStock(1);
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
         when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
 
@@ -331,6 +330,70 @@ class PedidoServiceImplTest {
 
         assertThrows(IllegalArgumentException.class, () -> pedidoService.actualizarEstado(50L, "EN_PREPARACION"));
         verify(pedidoRepository, never()).updateEstado(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("crearPedido con producto repetido en comanda agrupa y suma cantidades antes de insertar")
+    void crearPedido_ProductoRepetido_AgrupaCantidades() {
+        requestDTO.setDetalles(List.of(
+                DetallePedidoRequestDTO.builder().idProducto(10L).cantidad(2).build(),
+                DetallePedidoRequestDTO.builder().idProducto(10L).cantidad(3).build()
+        ));
+
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
+        when(productoRepository.updateStock(eq(10L), eq(15))).thenReturn(true);
+        when(pedidoRepository.save(any(Pedido.class))).thenReturn(pedido);
+        when(pedidoMapper.toResponseDTO(pedido)).thenReturn(responseDTO);
+
+        PedidoResponseDTO result = pedidoService.crearPedido(requestDTO);
+
+        assertNotNull(result);
+        verify(productoRepository).updateStock(10L, 15);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<DetallePedido>> detallesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(detallePedidoRepository).saveBatch(detallesCaptor.capture());
+
+        List<DetallePedido> detallesGuardados = detallesCaptor.getValue();
+        assertEquals(1, detallesGuardados.size());
+        assertEquals(5, detallesGuardados.get(0).getCantidad());
+    }
+
+    @Test
+    @DisplayName("crearPedido con producto repetido lanza StockInsuficienteException si la suma supera el stock")
+    void crearPedido_ProductoRepetido_StockInsuficiente() {
+        requestDTO.setDetalles(List.of(
+                DetallePedidoRequestDTO.builder().idProducto(10L).cantidad(12).build(),
+                DetallePedidoRequestDTO.builder().idProducto(10L).cantidad(10).build()
+        ));
+
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
+
+        assertThrows(StockInsuficienteException.class, () -> pedidoService.crearPedido(requestDTO));
+        verify(productoRepository, never()).updateStock(anyLong(), anyInt());
+        verify(pedidoRepository, never()).save(any());
+        verify(detallePedidoRepository, never()).saveBatch(any());
+    }
+
+    @Test
+    @DisplayName("crearPedido propaga DuplicateKeyException si ocurre duplicidad a nivel de BD")
+    void crearPedido_DuplicateKeyException_PropagaError() {
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
+        when(mesaRepository.findByNumeroMesa(5)).thenReturn(Optional.of(mesa));
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
+        when(productoRepository.updateStock(eq(10L), eq(18))).thenReturn(true);
+        when(pedidoRepository.save(any(Pedido.class))).thenReturn(pedido);
+        org.mockito.Mockito.doThrow(new DuplicateKeyException("Clave duplicada"))
+                .when(detallePedidoRepository).saveBatch(any());
+
+        assertThrows(DuplicateKeyException.class, () -> pedidoService.crearPedido(requestDTO));
     }
 
     @Test

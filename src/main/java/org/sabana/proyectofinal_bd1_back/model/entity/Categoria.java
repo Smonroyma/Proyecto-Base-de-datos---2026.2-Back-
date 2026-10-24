@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Entidad de dominio Categoria.
- * Mapea directamente la tabla de base de datos 'categoria' sin anotaciones JPA.
+ * POJO puro sin anotaciones de persistencia JPA.
  * La llave primaria es nombre_categoria (String).
  */
 @Data
@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class Categoria {
 
     private String nombreCategoria;
-    private String estado;
     private String descripcion;
+    private String estado;
 
 }

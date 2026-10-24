@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 /**
- * DTO de respuesta para presentar información pública de un miembro del Staff (Administrador o Empleado).
+ * DTO de respuesta para presentar información pública de un miembro del Staff (Administrador o Mesero).
  */
 @Data
 @Builder
@@ -31,10 +31,10 @@ public class UsuarioResponseDTO {
     @Schema(description = "Correo electrónico del usuario", example = "sofia.monroy@savanacoffee.com")
     private String correo;
 
-    @Schema(description = "Rol operativo según jerarquía de Staff", example = "EMPLEADO", allowableValues = {"ADMINISTRADOR", "EMPLEADO"})
+    @Schema(description = "Rol operativo según jerarquía de Staff", example = "MESERO", allowableValues = {"ADMINISTRADOR", "MESERO"})
     private String rol;
 
-    @Schema(description = "Estado operativo del empleado (ACTIVO / INACTIVO)", example = "ACTIVO")
+    @Schema(description = "Estado operativo del mesero (ACTIVO / INACTIVO)", example = "ACTIVO")
     private String estado;
 
     @Schema(description = "Indica si el usuario tiene activado 2FA", example = "true")

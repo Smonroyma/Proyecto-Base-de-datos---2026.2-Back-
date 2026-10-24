@@ -11,7 +11,8 @@ import java.time.LocalTime;
 
 /**
  * Entidad de dominio Reserva.
- * Mapea directamente la tabla de base de datos 'reserva' sin anotaciones JPA.
+ * POJO puro sin anotaciones de persistencia JPA.
+ * Representa la tabla 'reserva'.
  */
 @Data
 @Builder
@@ -20,15 +21,16 @@ import java.time.LocalTime;
 public class Reserva {
 
     private Long idReserva;
-    private Long idCliente;
-    private String nombreCliente;
-    private String correoCliente;
-    private Integer numeroMesa;
     private LocalDate fecha;
     private LocalTime hora;
     private Integer numeroPersonas;
     private String estado;
     private String observaciones;
+
+    private Long idCliente;
+    private String nombreCliente;
+    private String correoCliente;
+    private Integer numeroMesa;
 
     public LocalDateTime getFechaHora() {
         if (fecha != null && hora != null) {

@@ -1,7 +1,7 @@
 package org.sabana.proyectofinal_bd1_back.repository;
 
 import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
-import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Mesero;
 import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /**
  * Implementación de UsuarioRepository utilizando consultas SQL nativas y JdbcTemplate
- * realizando JOIN entre la tabla padre 'staff' y las tablas hijas 'administrador' y 'empleado'.
+ * realizando JOIN entre la tabla padre 'staff' y las tablas hijas 'administrador' y 'mesero'.
  */
 @Repository
 public class UsuarioRepositoryImpl implements UsuarioRepository {
@@ -29,11 +29,11 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
     private static final String BASE_SELECT = """
             SELECT s.id_usuario, s.nombres, s.apellidos, s.correo, s.contrasena,
                    s.dos_fac_hab, s.fecha_inicio,
-                   CASE WHEN a.id_usuario IS NOT NULL THEN 'ADMINISTRADOR' ELSE 'EMPLEADO' END AS rol,
-                   e.estado AS estado_empleado
+                   CASE WHEN a.id_usuario IS NOT NULL THEN 'ADMINISTRADOR' ELSE 'MESERO' END AS rol,
+                   m.estado AS estado_mesero
             FROM staff s
             LEFT JOIN administrador a ON s.id_usuario = a.id_usuario
-            LEFT JOIN empleado e ON s.id_usuario = e.id_usuario
+            LEFT JOIN mesero m ON s.id_usuario = m.id_usuario
             """;
 
     private final RowMapper<Staff> staffRowMapper = (rs, rowNum) -> {
@@ -59,8 +59,8 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
                     .rol("ADMINISTRADOR")
                     .build();
         } else {
-            String estado = rs.getString("estado_empleado");
-            return Empleado.builder()
+            String estado = rs.getString("estado_mesero");
+            return Mesero.builder()
                     .idUsuario(idUsuario)
                     .nombres(nombres)
                     .apellidos(apellidos)
@@ -68,7 +68,7 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
                     .contrasena(contrasena)
                     .dosFacHab(dosFacHab)
                     .fechaInicio(fechaInicio)
-                    .rol("EMPLEADO")
+                    .rol("MESERO")
                     .estado(estado != null ? estado : "ACTIVO")
                     .build();
         }
@@ -137,19 +137,19 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
         }
 
         String rol = staff.getRol() != null ? staff.getRol().trim().toUpperCase()
-                : (staff instanceof Administrador ? "ADMINISTRADOR" : "EMPLEADO");
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         if ("ADMINISTRADOR".equals(rol)) {
             jdbcTemplate.update("INSERT INTO administrador (id_usuario) VALUES (?)", staff.getIdUsuario());
             staff.setRol("ADMINISTRADOR");
         } else {
             String estado = "ACTIVO";
-            if (staff instanceof Empleado emp && emp.getEstado() != null && !emp.getEstado().isBlank()) {
-                estado = emp.getEstado().trim().toUpperCase();
-                emp.setEstado(estado);
+            if (staff instanceof Mesero mesero && mesero.getEstado() != null && !mesero.getEstado().isBlank()) {
+                estado = mesero.getEstado().trim().toUpperCase();
+                mesero.setEstado(estado);
             }
-            jdbcTemplate.update("INSERT INTO empleado (id_usuario, estado) VALUES (?, ?)", staff.getIdUsuario(), estado);
-            staff.setRol("EMPLEADO");
+            jdbcTemplate.update("INSERT INTO mesero (id_usuario, estado) VALUES (?, ?)", staff.getIdUsuario(), estado);
+            staff.setRol("MESERO");
         }
 
         staff.setCorreo(correoLower);
@@ -182,10 +182,10 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
         );
 
         String rol = staff.getRol() != null ? staff.getRol().trim().toUpperCase()
-                : (staff instanceof Administrador ? "ADMINISTRADOR" : "EMPLEADO");
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         if ("ADMINISTRADOR".equals(rol)) {
-            jdbcTemplate.update("DELETE FROM empleado WHERE id_usuario = ?", staff.getIdUsuario());
+            jdbcTemplate.update("DELETE FROM mesero WHERE id_usuario = ?", staff.getIdUsuario());
             Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM administrador WHERE id_usuario = ?", Integer.class, staff.getIdUsuario());
             if (count == null || count == 0) {
@@ -195,18 +195,18 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
         } else {
             jdbcTemplate.update("DELETE FROM administrador WHERE id_usuario = ?", staff.getIdUsuario());
             String estado = "ACTIVO";
-            if (staff instanceof Empleado emp && emp.getEstado() != null && !emp.getEstado().isBlank()) {
-                estado = emp.getEstado().trim().toUpperCase();
-                emp.setEstado(estado);
+            if (staff instanceof Mesero mesero && mesero.getEstado() != null && !mesero.getEstado().isBlank()) {
+                estado = mesero.getEstado().trim().toUpperCase();
+                mesero.setEstado(estado);
             }
             Integer count = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM empleado WHERE id_usuario = ?", Integer.class, staff.getIdUsuario());
+                    "SELECT COUNT(*) FROM mesero WHERE id_usuario = ?", Integer.class, staff.getIdUsuario());
             if (count == null || count == 0) {
-                jdbcTemplate.update("INSERT INTO empleado (id_usuario, estado) VALUES (?, ?)", staff.getIdUsuario(), estado);
+                jdbcTemplate.update("INSERT INTO mesero (id_usuario, estado) VALUES (?, ?)", staff.getIdUsuario(), estado);
             } else {
-                jdbcTemplate.update("UPDATE empleado SET estado = ? WHERE id_usuario = ?", estado, staff.getIdUsuario());
+                jdbcTemplate.update("UPDATE mesero SET estado = ? WHERE id_usuario = ?", estado, staff.getIdUsuario());
             }
-            staff.setRol("EMPLEADO");
+            staff.setRol("MESERO");
         }
 
         staff.setCorreo(correoLower);
@@ -219,7 +219,7 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
     @Transactional
     public boolean deleteById(Long id) {
         jdbcTemplate.update("DELETE FROM administrador WHERE id_usuario = ?", id);
-        jdbcTemplate.update("DELETE FROM empleado WHERE id_usuario = ?", id);
+        jdbcTemplate.update("DELETE FROM mesero WHERE id_usuario = ?", id);
         int rows = jdbcTemplate.update("DELETE FROM staff WHERE id_usuario = ?", id);
         return rows > 0;
     }

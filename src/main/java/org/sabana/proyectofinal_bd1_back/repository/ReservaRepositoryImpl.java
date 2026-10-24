@@ -28,7 +28,7 @@ public class ReservaRepositoryImpl implements ReservaRepository {
 
     private static final String BASE_SELECT = """
             SELECT r.id_reserva, r.id_cliente,
-                   CONCAT(c.nombres, ' ', c.apellidos) AS nombre_cliente,
+                   CONCAT(c.nombre, ' ', c.apellido) AS nombre_cliente,
                    c.correo AS correo_cliente,
                    r.numero_mesa, r.fecha, r.hora, r.numero_personas, r.estado, r.observaciones
             FROM reserva r

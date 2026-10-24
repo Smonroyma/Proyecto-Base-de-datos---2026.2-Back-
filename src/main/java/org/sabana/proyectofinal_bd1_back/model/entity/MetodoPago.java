@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * Entidad de dominio MetodoPago.
- * Mapea directamente la tabla de base de datos 'metodo_pago' sin anotaciones JPA.
- * La llave primaria es tipo (String: EFECTIVO, TARJETA, TRANSFERENCIA).
+ * POJO puro sin anotaciones de persistencia JPA.
+ * Tiene un único atributo: tipo (EFECTIVO, TARJETA, TRANSFERENCIA).
  */
 @Data
 @Builder
@@ -17,8 +17,5 @@ import lombok.NoArgsConstructor;
 public class MetodoPago {
 
     private String tipo;
-    private String nombre;
-    private String descripcion;
-    private Boolean activo;
 
 }

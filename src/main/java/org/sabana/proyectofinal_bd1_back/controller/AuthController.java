@@ -41,7 +41,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
             summary = "Registro administrativo de nuevo miembro de Staff",
-            description = "Registra un nuevo empleado o administrador en el sistema (Exclusivo para ADMINISTRADOR, el autorregistro público está cerrado)."
+            description = "Registra un nuevo mesero o administrador en el sistema (Exclusivo para ADMINISTRADOR, el autorregistro público está cerrado)."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Miembro de staff registrado exitosamente",
@@ -65,7 +65,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(
             summary = "Inicio de sesión primario del Staff",
-            description = "Valida credenciales de Administrador o Empleado activo. Si tiene 2FA habilitado, genera un OTP en memoria (ConcurrentHashMap) y lo envía por correo HTML."
+            description = "Valida credenciales de Administrador o Mesero activo. Si tiene 2FA habilitado, genera un OTP en memoria (ConcurrentHashMap) y lo envía por correo HTML."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Login exitoso o requerimiento de 2FA emitido",
@@ -74,7 +74,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Formato de credenciales incorrecto",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales inválidas o empleado inactivo",
+            @ApiResponse(responseCode = "401", description = "Credenciales inválidas o mesero inactivo",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
@@ -86,7 +86,7 @@ public class AuthController {
     @PostMapping("/verificar-2fa")
     @Operation(
             summary = "Validación de código OTP (2FA en memoria)",
-            description = "Valida el código de 6 dígitos almacenado temporalmente en memoria (5 minutos). Al ser válido, emite el token JWT con rol ADMINISTRADOR o EMPLEADO."
+            description = "Valida el código de 6 dígitos almacenado temporalmente en memoria (5 minutos). Al ser válido, emite el token JWT con rol ADMINISTRADOR o MESERO."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Verificación 2FA exitosa y emisión de token JWT",
@@ -95,7 +95,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Código OTP incorrecto o expirado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Usuario no autorizado o empleado inactivo",
+            @ApiResponse(responseCode = "401", description = "Usuario no autorizado o mesero inactivo",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class)))
     })

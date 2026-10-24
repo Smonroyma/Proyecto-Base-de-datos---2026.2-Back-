@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * DTO de salida con la información estructurada de un método de pago.
+ * Contiene únicamente el atributo tipo que lo identifica.
  */
 @Data
 @Builder
@@ -18,14 +19,5 @@ public class MetodoPagoResponseDTO {
 
     @Schema(description = "Tipo único del método de pago (PK)", example = "EFECTIVO")
     private String tipo;
-
-    @Schema(description = "Nombre visible del método de pago", example = "Efectivo")
-    private String nombre;
-
-    @Schema(description = "Descripción del método de pago", example = "Pago en moneda local en caja")
-    private String descripcion;
-
-    @Schema(description = "Indica si el método de pago está activo", example = "true")
-    private Boolean activo;
 
 }

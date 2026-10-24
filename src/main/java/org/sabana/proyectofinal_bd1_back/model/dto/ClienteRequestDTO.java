@@ -21,17 +21,17 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Datos para el registro o actualización de un cliente")
 public class ClienteRequestDTO {
 
-    @NotBlank(message = "Los nombres del cliente son obligatorios")
-    @Size(min = 2, max = 100, message = "Los nombres deben tener entre 2 y 100 caracteres")
-    @JsonAlias({"nombre"})
-    @Schema(description = "Nombres del cliente", example = "Carlos")
-    private String nombres;
+    @NotBlank(message = "El nombre del cliente es obligatorio")
+    @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
+    @JsonAlias({"nombres"})
+    @Schema(description = "Nombre del cliente", example = "Carlos")
+    private String nombre;
 
-    @NotBlank(message = "Los apellidos del cliente son obligatorios")
-    @Size(min = 2, max = 100, message = "Los apellidos deben tener entre 2 y 100 caracteres")
-    @JsonAlias({"apellido"})
-    @Schema(description = "Apellidos del cliente", example = "Mendoza")
-    private String apellidos;
+    @NotBlank(message = "El apellido del cliente es obligatorio")
+    @Size(min = 2, max = 100, message = "El apellido debe tener entre 2 y 100 caracteres")
+    @JsonAlias({"apellidos"})
+    @Schema(description = "Apellido del cliente", example = "Mendoza")
+    private String apellido;
 
     @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El formato del correo electrónico no es válido")

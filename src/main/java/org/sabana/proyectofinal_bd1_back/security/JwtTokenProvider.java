@@ -32,7 +32,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Genera un token JWT firmado para el miembro de Staff con claims de correo, rol (ADMINISTRADOR o EMPLEADO) e idUsuario.
+     * Genera un token JWT firmado para el miembro de Staff con claims de correo, rol (ADMINISTRADOR o MESERO) e idUsuario.
      */
     public String generateToken(Staff staff) {
         Date now = new Date();
@@ -40,7 +40,7 @@ public class JwtTokenProvider {
 
         String rol = staff.getRol() != null && !staff.getRol().isBlank()
                 ? staff.getRol().trim().toUpperCase()
-                : (staff instanceof Administrador ? "ADMINISTRADOR" : "EMPLEADO");
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         return Jwts.builder()
                 .subject(staff.getCorreo())

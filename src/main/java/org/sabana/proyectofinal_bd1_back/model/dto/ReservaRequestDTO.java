@@ -30,13 +30,13 @@ public class ReservaRequestDTO {
     @Schema(description = "Identificador único del cliente (opcional si se envían los datos del cliente con correo)", example = "1")
     private Long idCliente;
 
-    @JsonAlias({"nombre", "nombreCliente"})
-    @Schema(description = "Nombres del cliente (para reserva pública sin cuenta)", example = "Carlos")
-    private String nombres;
+    @JsonAlias({"nombres", "nombreCliente"})
+    @Schema(description = "Nombre del cliente (para reserva pública sin cuenta)", example = "Carlos")
+    private String nombre;
 
-    @JsonAlias({"apellido", "apellidosCliente"})
-    @Schema(description = "Apellidos del cliente (para reserva pública sin cuenta)", example = "Mendoza")
-    private String apellidos;
+    @JsonAlias({"apellidos", "apellidosCliente"})
+    @Schema(description = "Apellido del cliente (para reserva pública sin cuenta)", example = "Mendoza")
+    private String apellido;
 
     @Email(message = "El formato del correo electrónico del cliente no es válido")
     @JsonAlias({"email", "correoCliente"})

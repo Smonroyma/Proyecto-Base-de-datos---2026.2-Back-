@@ -9,8 +9,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,13 +22,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     private final RowMapper<Cliente> clienteRowMapper = (rs, rowNum) -> Cliente.builder()
             .idCliente(rs.getLong("id_cliente"))
-            .nombres(rs.getString("nombres"))
-            .apellidos(rs.getString("apellidos"))
+            .nombre(rs.getString("nombre"))
+            .apellido(rs.getString("apellido"))
             .correo(rs.getString("correo"))
             .telefono(rs.getString("telefono"))
-            .fechaRegistro(rs.getTimestamp("fecha_registro") != null
-                    ? rs.getTimestamp("fecha_registro").toLocalDateTime()
-                    : null)
             .build();
 
     public ClienteRepositoryImpl(JdbcTemplate jdbcTemplate) {
@@ -39,7 +34,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public Optional<Cliente> findById(Long id) {
-        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente WHERE id_cliente = ?";
+        String sql = "SELECT id_cliente, nombre, apellido, correo, telefono FROM cliente WHERE id_cliente = ?";
         try {
             Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, id);
             return Optional.ofNullable(cliente);
@@ -50,25 +45,21 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public List<Cliente> findAll() {
-        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente ORDER BY id_cliente ASC";
+        String sql = "SELECT id_cliente, nombre, apellido, correo, telefono FROM cliente ORDER BY id_cliente ASC";
         return jdbcTemplate.query(sql, clienteRowMapper);
     }
 
     @Override
     public Cliente save(Cliente cliente) {
-        String sql = "INSERT INTO cliente (nombres, apellidos, correo, telefono, fecha_registro) VALUES (?, ?, ?, ?, ?)";
-        LocalDateTime fechaRegistro = cliente.getFechaRegistro() != null
-                ? cliente.getFechaRegistro()
-                : LocalDateTime.now();
+        String sql = "INSERT INTO cliente (nombre, apellido, correo, telefono) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id_cliente"});
-            ps.setString(1, cliente.getNombres());
-            ps.setString(2, cliente.getApellidos() != null ? cliente.getApellidos() : "");
+            ps.setString(1, cliente.getNombre());
+            ps.setString(2, cliente.getApellido() != null ? cliente.getApellido() : "");
             ps.setString(3, cliente.getCorreo());
             ps.setString(4, cliente.getTelefono());
-            ps.setTimestamp(5, Timestamp.valueOf(fechaRegistro));
             return ps;
         }, keyHolder);
 
@@ -76,17 +67,16 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         if (generatedKey != null) {
             cliente.setIdCliente(generatedKey.longValue());
         }
-        cliente.setFechaRegistro(fechaRegistro);
         return cliente;
     }
 
     @Override
     public Cliente update(Cliente cliente) {
-        String sql = "UPDATE cliente SET nombres = ?, apellidos = ?, correo = ?, telefono = ? WHERE id_cliente = ?";
+        String sql = "UPDATE cliente SET nombre = ?, apellido = ?, correo = ?, telefono = ? WHERE id_cliente = ?";
         jdbcTemplate.update(
                 sql,
-                cliente.getNombres(),
-                cliente.getApellidos(),
+                cliente.getNombre(),
+                cliente.getApellido(),
                 cliente.getCorreo(),
                 cliente.getTelefono(),
                 cliente.getIdCliente()
@@ -131,7 +121,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public Optional<Cliente> findByCorreo(String correo) {
-        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente WHERE LOWER(correo) = LOWER(?)";
+        String sql = "SELECT id_cliente, nombre, apellido, correo, telefono FROM cliente WHERE LOWER(correo) = LOWER(?)";
         try {
             Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, correo);
             return Optional.ofNullable(cliente);
@@ -142,7 +132,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
     @Override
     public Optional<Cliente> findByTelefono(String telefono) {
-        String sql = "SELECT id_cliente, nombres, apellidos, correo, telefono, fecha_registro FROM cliente WHERE telefono = ?";
+        String sql = "SELECT id_cliente, nombre, apellido, correo, telefono FROM cliente WHERE telefono = ?";
         try {
             Cliente cliente = jdbcTemplate.queryForObject(sql, clienteRowMapper, telefono);
             return Optional.ofNullable(cliente);
@@ -162,12 +152,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     public boolean hasPedidosOrFacturas(Long idCliente) {
         String sqlPedidos = "SELECT COUNT(*) FROM pedido WHERE id_cliente = ?";
         Integer countPedidos = jdbcTemplate.queryForObject(sqlPedidos, Integer.class, idCliente);
-        if (countPedidos != null && countPedidos > 0) {
-            return true;
-        }
-        String sqlFacturas = "SELECT COUNT(*) FROM factura WHERE id_cliente = ?";
-        Integer countFacturas = jdbcTemplate.queryForObject(sqlFacturas, Integer.class, idCliente);
-        return countFacturas != null && countFacturas > 0;
+        return countPedidos != null && countPedidos > 0;
     }
 
     @Override

@@ -6,7 +6,7 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.Verificar2FARequestDTO;
-import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Mesero;
 import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
 import org.sabana.proyectofinal_bd1_back.security.JwtTokenProvider;
@@ -77,8 +77,8 @@ public class AuthServiceImpl implements AuthService {
         Staff staff = usuarioRepository.findByCorreo(requestDTO.getCorreo())
                 .orElseThrow(() -> new InvalidCredentialsException("Credenciales inválidas: correo o contraseña incorrectos."));
 
-        if (staff instanceof Empleado empleado && !empleado.isActivo()) {
-            throw new InvalidCredentialsException("El empleado se encuentra inactivo. Comunícate con administración.");
+        if (staff instanceof Mesero mesero && !mesero.isActivo()) {
+            throw new InvalidCredentialsException("El mesero se encuentra inactivo. Comunícate con administración.");
         }
 
         if (!passwordEncoder.matches(requestDTO.getContrasena(), staff.getContrasena())) {
@@ -122,8 +122,8 @@ public class AuthServiceImpl implements AuthService {
         Staff staff = usuarioRepository.findByCorreo(requestDTO.getCorreo())
                 .orElseThrow(() -> new InvalidCredentialsException("Usuario no encontrado para verificación."));
 
-        if (staff instanceof Empleado empleado && !empleado.isActivo()) {
-            throw new InvalidCredentialsException("El empleado se encuentra inactivo.");
+        if (staff instanceof Mesero mesero && !mesero.isActivo()) {
+            throw new InvalidCredentialsException("El mesero se encuentra inactivo.");
         }
 
         String key = normalizarCorreoKey(staff.getCorreo());

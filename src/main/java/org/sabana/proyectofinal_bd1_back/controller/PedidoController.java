@@ -54,7 +54,7 @@ public class PedidoController {
             @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o faltantes",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Cliente, mesa, empleado o producto no encontrado",
+            @ApiResponse(responseCode = "404", description = "Cliente, mesa, mesero o producto no encontrado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "422", description = "Stock insuficiente o producto no disponible",

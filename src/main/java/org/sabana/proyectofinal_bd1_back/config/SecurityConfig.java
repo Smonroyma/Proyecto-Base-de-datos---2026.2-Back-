@@ -25,7 +25,7 @@ import java.util.List;
 
 /**
  * Configuración central de seguridad Spring Security V2 desacoplada de JPA y basada en JWT.
- * Implementa la matriz estricta de roles y permisos (Público/Cliente, ADMINISTRADOR, EMPLEADO).
+ * Implementa la matriz estricta de roles y permisos (Público/Cliente, ADMINISTRADOR, MESERO).
  */
 @Configuration
 @EnableWebSecurity
@@ -97,17 +97,17 @@ public class SecurityConfig {
                                 && !request.getParameter("correo").isBlank()).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/reservas").permitAll()
 
-                        // 2. Operaciones Exclusivas de EMPLEADO (El Administrador tiene PROHIBIDO 403 tomar pedidos o procesar pagos)
-                        .requestMatchers(HttpMethod.POST, "/api/pedidos", "/api/pedidos/**").hasRole("EMPLEADO")
-                        .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").hasRole("EMPLEADO")
-                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasRole("EMPLEADO")
-                        .requestMatchers(HttpMethod.POST, "/api/pagos", "/api/pagos/**").hasRole("EMPLEADO")
+                        // 2. Operaciones Exclusivas de MESERO (El Administrador tiene PROHIBIDO 403 tomar pedidos o procesar pagos)
+                        .requestMatchers(HttpMethod.POST, "/api/pedidos", "/api/pedidos/**").hasRole("MESERO")
+                        .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").hasRole("MESERO")
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasRole("MESERO")
+                        .requestMatchers(HttpMethod.POST, "/api/pagos", "/api/pagos/**").hasRole("MESERO")
 
                         // 3. Operaciones Exclusivas de ADMINISTRADOR
                         .requestMatchers(
                                 "/api/auth/registro",
                                 "/api/usuarios/**",
-                                "/api/empleados/**",
+                                "/api/meseros/**",
                                 "/api/staff/**",
                                 "/api/dashboard/**"
                         ).hasRole("ADMINISTRADOR")
@@ -123,19 +123,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/metodos-pago/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/metodos-pago/**").hasRole("ADMINISTRADOR")
 
-                        // 4. Operaciones Compartidas entre ADMINISTRADOR y EMPLEADO
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.GET, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.PUT, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.PATCH, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.GET, "/api/pagos/**", "/api/facturas/**", "/api/metodos-pago/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.GET, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.PUT, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.PATCH, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.GET, "/api/clientes/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.POST, "/api/clientes", "/api/clientes/**").hasAnyRole("ADMINISTRADOR", "EMPLEADO")
+                        // 4. Operaciones Compartidas entre ADMINISTRADOR y MESERO
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.GET, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.PUT, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.PATCH, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.GET, "/api/pagos/**", "/api/facturas/**", "/api/metodos-pago/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.GET, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.PUT, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.PATCH, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.GET, "/api/clientes/**").hasAnyRole("ADMINISTRADOR", "MESERO")
+                        .requestMatchers(HttpMethod.POST, "/api/clientes", "/api/clientes/**").hasAnyRole("ADMINISTRADOR", "MESERO")
 
                         .anyRequest().authenticated()
                 )

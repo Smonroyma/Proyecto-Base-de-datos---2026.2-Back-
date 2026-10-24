@@ -27,9 +27,6 @@ public class FacturaRequestDTO {
     @Schema(description = "Identificador del pedido que se va a pagar y facturar", example = "1")
     private Long idPedido;
 
-    @Schema(description = "Identificador del empleado que registra el pago (opcional, si no se envía se toma del pedido)", example = "2")
-    private Long idUsuario;
-
     @Min(value = 0, message = "La propina no puede ser negativa")
     @Schema(description = "Monto de propina voluntaria (opcional, por defecto 0.0)", example = "2000.0")
     private Double propina;
@@ -42,23 +39,19 @@ public class FacturaRequestDTO {
     @Schema(description = "Tipo de método de pago directo (alternativa si se realiza un único pago)", example = "EFECTIVO")
     private String tipoMetodoPago;
 
-    @JsonAlias({"monto"})
-    @Schema(description = "Total abonado directo (alternativa si se realiza un único pago)", example = "22795.0")
-    private Double total;
-
-    @Schema(description = "Referencia de transacción directa (opcional)", example = "VOUCHER-98412")
-    private String referenciaTransaccion;
+    @JsonAlias({"total"})
+    @Schema(description = "Monto abonado directo (alternativa si se realiza un único pago)", example = "22795.0")
+    private Double monto;
 
     public List<PagoRequestDTO> resolvePagos() {
         if (pagos != null && !pagos.isEmpty()) {
             return pagos;
         }
-        if (tipoMetodoPago != null && !tipoMetodoPago.isBlank() && total != null) {
+        if (tipoMetodoPago != null && !tipoMetodoPago.isBlank() && monto != null) {
             List<PagoRequestDTO> single = new ArrayList<>();
             single.add(PagoRequestDTO.builder()
                     .tipoMetodoPago(tipoMetodoPago)
-                    .total(total)
-                    .referenciaTransaccion(referenciaTransaccion)
+                    .monto(monto)
                     .build());
             return single;
         }

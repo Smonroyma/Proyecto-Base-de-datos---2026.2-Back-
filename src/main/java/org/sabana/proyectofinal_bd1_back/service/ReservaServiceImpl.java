@@ -269,18 +269,17 @@ public class ReservaServiceImpl implements ReservaService {
             String correoLimpio = requestDTO.getCorreo().trim();
             return clienteRepository.findByCorreo(correoLimpio)
                     .orElseGet(() -> {
-                        if (requestDTO.getNombres() == null || requestDTO.getNombres().isBlank()) {
-                            throw new IllegalArgumentException("Los nombres del cliente son obligatorios para registrar un nuevo cliente en la reserva");
+                        if (requestDTO.getNombre() == null || requestDTO.getNombre().isBlank()) {
+                            throw new IllegalArgumentException("El nombre del cliente es obligatorio para registrar un nuevo cliente en la reserva");
                         }
                         if (requestDTO.getTelefono() == null || requestDTO.getTelefono().isBlank()) {
                             throw new IllegalArgumentException("El teléfono del cliente es obligatorio para registrar un nuevo cliente en la reserva");
                         }
                         Cliente nuevo = Cliente.builder()
-                                .nombres(requestDTO.getNombres().trim())
-                                .apellidos(requestDTO.getApellidos() != null ? requestDTO.getApellidos().trim() : "")
+                                .nombre(requestDTO.getNombre().trim())
+                                .apellido(requestDTO.getApellido() != null ? requestDTO.getApellido().trim() : "")
                                 .correo(correoLimpio)
                                 .telefono(requestDTO.getTelefono().trim())
-                                .fechaRegistro(LocalDateTime.now())
                                 .build();
                         return clienteRepository.save(nuevo);
                     });

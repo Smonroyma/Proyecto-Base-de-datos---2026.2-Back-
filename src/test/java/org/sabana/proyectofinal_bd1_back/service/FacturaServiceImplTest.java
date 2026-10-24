@@ -15,12 +15,13 @@ import org.sabana.proyectofinal_bd1_back.model.dto.PagoMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.PagoRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.PagoResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.Cliente;
-import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.DetallePedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.EstadoFactura;
 import org.sabana.proyectofinal_bd1_back.model.entity.EstadoPedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Factura;
+import org.sabana.proyectofinal_bd1_back.model.entity.Mesero;
 import org.sabana.proyectofinal_bd1_back.model.entity.MetodoPago;
-import org.sabana.proyectofinal_bd1_back.model.entity.PagoFactura;
+import org.sabana.proyectofinal_bd1_back.model.entity.Pago;
 import org.sabana.proyectofinal_bd1_back.model.entity.Pedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
@@ -89,7 +90,7 @@ class FacturaServiceImplTest {
     private FacturaServiceImpl facturaService;
 
     private Cliente cliente;
-    private Staff empleado;
+    private Staff mesero;
     private Pedido pedido;
     private MetodoPago metodoEfectivo;
     private MetodoPago metodoTarjeta;
@@ -100,22 +101,29 @@ class FacturaServiceImplTest {
     void setUp() {
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombres("Carlos")
-                .apellidos("Mendoza")
+                .nombre("Carlos")
+                .apellido("Mendoza")
                 .telefono("3001234567")
                 .correo("carlos@example.com")
                 .build();
 
-        empleado = Empleado.builder()
+        mesero = Mesero.builder()
                 .idUsuario(2L)
                 .nombres("Laura")
                 .apellidos("Mesera")
                 .correo("laura@savanacoffee.com")
-                .rol("EMPLEADO")
+                .rol("MESERO")
                 .estado("ACTIVO")
                 .build();
 
-        // Subtotal = 20000.0, Impuesto IVA 19% = 3800.0, Propina = 2000.0 -> Total = 25800.0
+        DetallePedido detallePedido = DetallePedido.builder()
+                .idProducto(10L)
+                .nombreProducto("Café Americano")
+                .cantidad(2)
+                .precioUnitario(10000.0)
+                .build();
+
+        // Subtotal calculado = 20000.0, Impuesto IVA 19% = 3800.0, Propina = 2000.0 -> Total = 25800.0
         pedido = Pedido.builder()
                 .idPedido(50L)
                 .idCliente(1L)
@@ -124,32 +132,25 @@ class FacturaServiceImplTest {
                 .idUsuario(2L)
                 .nombreUsuario("Laura Mesera")
                 .estado(EstadoPedido.ENTREGADO.name())
-                .subtotal(20000.0)
+                .detalles(List.of(detallePedido))
                 .build();
 
         metodoEfectivo = MetodoPago.builder()
                 .tipo("EFECTIVO")
-                .nombre("Efectivo")
-                .activo(true)
                 .build();
 
         metodoTarjeta = MetodoPago.builder()
                 .tipo("TARJETA")
-                .nombre("Tarjeta")
-                .activo(true)
                 .build();
 
         facturaGuardada = Factura.builder()
                 .numFactura("FAC-2026-00001")
                 .idPedido(50L)
-                .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
-                .correoCliente("carlos@example.com")
-                .telefonoCliente("3001234567")
-                .idUsuario(2L)
+                .correoCliente("carlos.mendoza@email.com")
+                .telefonoCliente("+57 300 1234567")
                 .nombreUsuario("Laura Mesera")
                 .fecha(LocalDateTime.now())
-                .subtotal(20000.0)
                 .propina(2000.0)
                 .impuesto(3800.0)
                 .total(25800.0)
@@ -159,13 +160,10 @@ class FacturaServiceImplTest {
         facturaResponseDTO = FacturaResponseDTO.builder()
                 .numFactura("FAC-2026-00001")
                 .idPedido(50L)
-                .idCliente(1L)
                 .nombreCliente("Carlos Mendoza")
                 .correoCliente("carlos@example.com")
                 .telefonoCliente("3001234567")
-                .idUsuario(2L)
                 .nombreUsuario("Laura Mesera")
-                .subtotal(20000.0)
                 .propina(2000.0)
                 .impuesto(3800.0)
                 .total(25800.0)
@@ -174,9 +172,8 @@ class FacturaServiceImplTest {
                         .idPago(10L)
                         .numFactura("FAC-2026-00001")
                         .tipoMetodoPago("EFECTIVO")
-                        .nombreMetodoPago("Efectivo")
                         .estado("PAGADO")
-                        .total(25800.0)
+                        .monto(25800.0)
                         .build()))
                 .build();
     }
@@ -186,19 +183,18 @@ class FacturaServiceImplTest {
     void procesarPagoYEmitirFactura_Exitoso() {
         PagoRequestDTO pagoUnico = PagoRequestDTO.builder()
                 .tipoMetodoPago("EFECTIVO")
-                .total(25800.0)
+                .monto(25800.0)
                 .build();
 
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
-                .idUsuario(2L)
                 .propina(2000.0)
                 .pagos(List.of(pagoUnico))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
         when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoEfectivo));
         when(facturaRepository.generarSiguienteNumeroFactura()).thenReturn("FAC-2026-00001");
@@ -229,24 +225,23 @@ class FacturaServiceImplTest {
     void procesarPagoYEmitirFactura_PagosMixtos_Exitoso() {
         PagoRequestDTO pagoEfectivo = PagoRequestDTO.builder()
                 .tipoMetodoPago("EFECTIVO")
-                .total(10000.0)
+                .monto(10000.0)
                 .build();
 
         PagoRequestDTO pagoTarjeta = PagoRequestDTO.builder()
                 .tipoMetodoPago("TARJETA")
-                .total(15800.0)
+                .monto(15800.0)
                 .build();
 
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
-                .idUsuario(2L)
                 .propina(2000.0)
                 .pagos(List.of(pagoEfectivo, pagoTarjeta))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
         when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoEfectivo));
         when(metodoPagoRepository.findByTipo("TARJETA")).thenReturn(Optional.of(metodoTarjeta));
@@ -258,7 +253,7 @@ class FacturaServiceImplTest {
 
         assertNotNull(result);
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<PagoFactura>> pagosCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<Pago>> pagosCaptor = ArgumentCaptor.forClass(List.class);
         verify(pagoFacturaRepository).saveBatch(pagosCaptor.capture());
         assertEquals(2, pagosCaptor.getValue().size());
         verify(pedidoRepository).updateEstado(50L, EstadoPedido.PAGADO.name());
@@ -270,7 +265,7 @@ class FacturaServiceImplTest {
     void procesarPagoYEmitirFactura_PedidoNoExiste_LanzaPedidoNotFoundException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(999L)
-                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").total(23800.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").monto(23800.0).build()))
                 .build();
 
         when(pedidoRepository.findById(999L)).thenReturn(Optional.empty());
@@ -284,7 +279,7 @@ class FacturaServiceImplTest {
     void procesarPagoYEmitirFactura_PedidoYaFacturadoEnBD_LanzaPedidoYaFacturadoException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
-                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").total(23800.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").monto(23800.0).build()))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
@@ -299,14 +294,13 @@ class FacturaServiceImplTest {
     void procesarPagoYEmitirFactura_DescuadreDeMontos_LanzaPagoInvalidoException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
-                .idUsuario(2L)
                 .propina(2000.0)
-                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").total(20000.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("EFECTIVO").monto(20000.0).build()))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
         when(metodoPagoRepository.findByTipo("EFECTIVO")).thenReturn(Optional.of(metodoEfectivo));
 
@@ -320,14 +314,13 @@ class FacturaServiceImplTest {
     void procesarPagoYEmitirFactura_MetodoPagoNoExiste_LanzaMetodoPagoNotFoundException() {
         FacturaRequestDTO request = FacturaRequestDTO.builder()
                 .idPedido(50L)
-                .idUsuario(2L)
                 .propina(2000.0)
-                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("CHEQUE").total(25800.0).build()))
+                .pagos(List.of(PagoRequestDTO.builder().tipoMetodoPago("CHEQUE").monto(25800.0).build()))
                 .build();
 
         when(pedidoRepository.findById(50L)).thenReturn(Optional.of(pedido));
         when(facturaRepository.existsByPedidoId(50L)).thenReturn(false);
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
         when(metodoPagoRepository.findByTipo("CHEQUE")).thenReturn(Optional.empty());
 
@@ -372,11 +365,11 @@ class FacturaServiceImplTest {
     @Test
     @DisplayName("obtenerPagos retorna la lista de pagos filtrados por numFactura")
     void obtenerPagos_PorNumFactura_Exitoso() {
-        PagoFactura pago = PagoFactura.builder()
+        Pago pago = Pago.builder()
                 .idPago(10L)
                 .numFactura("FAC-2026-00001")
                 .tipoMetodoPago("EFECTIVO")
-                .total(25800.0)
+                .monto(25800.0)
                 .estado("PAGADO")
                 .build();
         when(pagoFacturaRepository.findByNumFactura("FAC-2026-00001")).thenReturn(List.of(pago));

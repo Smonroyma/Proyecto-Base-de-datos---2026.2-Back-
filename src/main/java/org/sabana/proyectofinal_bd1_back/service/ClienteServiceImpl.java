@@ -57,7 +57,6 @@ public class ClienteServiceImpl implements ClienteService {
         }
 
         Cliente cliente = clienteMapper.toEntity(requestDTO);
-        cliente.setFechaRegistro(LocalDateTime.now());
 
         Cliente clienteGuardado = clienteRepository.save(cliente);
         return clienteMapper.toResponseDTO(clienteGuardado);

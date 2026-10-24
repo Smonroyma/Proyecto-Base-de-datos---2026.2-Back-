@@ -49,23 +49,14 @@ class MetodoPagoServiceImplTest {
     void setUp() {
         metodoPago = MetodoPago.builder()
                 .tipo("EFECTIVO")
-                .nombre("Efectivo")
-                .descripcion("Pago en moneda local en caja")
-                .activo(true)
                 .build();
 
         requestDTO = MetodoPagoRequestDTO.builder()
                 .tipo("  efectivo  ")
-                .nombre("  Efectivo  ")
-                .descripcion("  Pago en moneda local en caja  ")
-                .activo(true)
                 .build();
 
         responseDTO = MetodoPagoResponseDTO.builder()
                 .tipo("EFECTIVO")
-                .nombre("Efectivo")
-                .descripcion("Pago en moneda local en caja")
-                .activo(true)
                 .build();
     }
 
@@ -116,7 +107,7 @@ class MetodoPagoServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertTrue(result.getFirst().getActivo());
+        assertEquals("EFECTIVO", result.getFirst().getTipo());
         verify(metodoPagoRepository).findAllActivos();
         verify(metodoPagoRepository, never()).findAll();
     }

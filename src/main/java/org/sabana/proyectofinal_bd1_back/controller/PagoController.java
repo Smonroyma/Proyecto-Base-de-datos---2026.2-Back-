@@ -27,7 +27,7 @@ import java.util.List;
 
 /**
  * Controlador REST para el procesamiento de pagos y generación automática de facturas (IVA 19%) en Savana Data Coffee.
- * Regla V2: Exclusivo para ROLE_EMPLEADO en el registro de pagos (POST /api/pagos).
+ * Regla V2: Exclusivo para ROLE_MESERO en el registro de pagos (POST /api/pagos).
  */
 @RestController
 @RequestMapping("/api/pagos")
@@ -43,7 +43,7 @@ public class PagoController {
     @PostMapping
     @Operation(
             summary = "Procesar pago de pedido y generar factura (IVA 19%)",
-            description = "El empleado registra el pago seleccionando los métodos de pago (EFECTIVO, TARJETA, TRANSFERENCIA). El sistema calcula el IVA del 19%, valida el cuadre exacto, genera automáticamente la FACTURA en estado PAGADA, pasa el PEDIDO a PAGADO, libera la MESA a DISPONIBLE y envía la factura por correo HTML."
+            description = "El mesero registra el pago seleccionando los métodos de pago (EFECTIVO, TARJETA, TRANSFERENCIA). El sistema calcula el IVA del 19%, valida el cuadre exacto, genera automáticamente la FACTURA en estado PAGADA, pasa el PEDIDO a PAGADO, libera la MESA a DISPONIBLE y envía la factura por correo HTML."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pago procesado y factura generada exitosamente",
@@ -52,7 +52,7 @@ public class PagoController {
             @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Pedido, empleado, cliente o método de pago no encontrado",
+            @ApiResponse(responseCode = "404", description = "Pedido, mesero, cliente o método de pago no encontrado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponseDTO.class))),
             @ApiResponse(responseCode = "409", description = "El pedido ya fue facturado previamente",

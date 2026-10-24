@@ -8,22 +8,21 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Entidad de dominio PagoFactura (mapea la tabla 'pago' del modelo V2).
- * Sin anotaciones JPA.
+ * Entidad de dominio Pago.
+ * POJO puro sin anotaciones de persistencia JPA.
+ * Regla V3: Usa 'monto' y no contiene 'referenciaTransaccion'.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PagoFactura {
+public class Pago {
 
     private Long idPago;
-    private String numFactura;
-    private String tipoMetodoPago;
-    private String nombreMetodoPago;
     private LocalDateTime fecha;
     private String estado;
-    private Double total;
-    private String referenciaTransaccion;
+    private Double monto;
+    private String numFactura;
+    private String tipoMetodoPago;
 
 }

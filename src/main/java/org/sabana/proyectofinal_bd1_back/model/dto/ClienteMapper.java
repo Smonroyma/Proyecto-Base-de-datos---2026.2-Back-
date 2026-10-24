@@ -14,7 +14,6 @@ import java.util.List;
 public interface ClienteMapper {
 
     @Mapping(target = "idCliente", ignore = true)
-    @Mapping(target = "fechaRegistro", ignore = true)
     Cliente toEntity(ClienteRequestDTO dto);
 
     ClienteResponseDTO toResponseDTO(Cliente entity);
@@ -22,7 +21,6 @@ public interface ClienteMapper {
     List<ClienteResponseDTO> toResponseDTOList(List<Cliente> entities);
 
     @Mapping(target = "idCliente", ignore = true)
-    @Mapping(target = "fechaRegistro", ignore = true)
     void updateEntityFromDTO(ClienteRequestDTO dto, @MappingTarget Cliente entity);
 
 }

@@ -1,5 +1,6 @@
 package org.sabana.proyectofinal_bd1_back.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +20,7 @@ import lombok.NoArgsConstructor;
 public class DetallePedidoRequestDTO {
 
     @NotNull(message = "El ID del producto es obligatorio")
+    @JsonAlias({"productoId", "id_producto"})
     @Schema(description = "Identificador único del producto a ordenar", example = "1")
     private Long idProducto;
 
@@ -26,5 +28,13 @@ public class DetallePedidoRequestDTO {
     @Min(value = 1, message = "La cantidad mínima debe ser 1")
     @Schema(description = "Cantidad solicitada del producto", example = "2")
     private Integer cantidad;
+
+    public Long getProductoId() {
+        return idProducto;
+    }
+
+    public void setProductoId(Long productoId) {
+        this.idProducto = productoId;
+    }
 
 }

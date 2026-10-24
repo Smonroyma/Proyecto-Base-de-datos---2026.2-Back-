@@ -6,7 +6,7 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import java.util.List;
 
 /**
- * Interfaz de servicio para la gestión de miembros del Staff (Administradores y Empleados).
+ * Interfaz de servicio para la gestión de miembros del Staff (Administradores y Meseros).
  */
 public interface UsuarioService {
 

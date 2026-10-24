@@ -11,7 +11,7 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
-import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Mesero;
 import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
 import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
@@ -52,7 +52,7 @@ class UsuarioServiceImplTest {
     private UsuarioServiceImpl usuarioService;
 
     private Administrador admin;
-    private Empleado empleado;
+    private Mesero mesero;
     private UsuarioRequestDTO requestDTO;
     private UsuarioResponseDTO responseDTO;
 
@@ -69,13 +69,13 @@ class UsuarioServiceImplTest {
                 .fechaInicio(LocalDate.now())
                 .build();
 
-        empleado = Empleado.builder()
+        mesero = Mesero.builder()
                 .idUsuario(2L)
                 .nombres("Juan")
                 .apellidos("Mesero")
                 .correo("juan@savanacoffee.com")
                 .contrasena("encodedHash")
-                .rol("EMPLEADO")
+                .rol("MESERO")
                 .estado("ACTIVO")
                 .dosFacHab(false)
                 .fechaInicio(LocalDate.now())
@@ -208,17 +208,17 @@ class UsuarioServiceImplTest {
     }
 
     @Test
-    @DisplayName("cambiarEstado actualiza estado de Empleado a INACTIVO y envía correo de desactivación")
-    void cambiarEstado_EmpleadoInactivo_Exitoso() {
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(empleado));
-        when(usuarioRepository.update(any(Staff.class))).thenReturn(empleado);
-        when(usuarioMapper.toResponseDTO(empleado)).thenReturn(responseDTO);
+    @DisplayName("cambiarEstado actualiza estado de Mesero a INACTIVO y envía correo de desactivación")
+    void cambiarEstado_MeseroInactivo_Exitoso() {
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(mesero));
+        when(usuarioRepository.update(any(Staff.class))).thenReturn(mesero);
+        when(usuarioMapper.toResponseDTO(mesero)).thenReturn(responseDTO);
 
         UsuarioResponseDTO result = usuarioService.cambiarEstado(2L, "INACTIVO");
 
         assertNotNull(result);
-        assertEquals("INACTIVO", empleado.getEstado());
-        verify(usuarioRepository).update(empleado);
+        assertEquals("INACTIVO", mesero.getEstado());
+        verify(usuarioRepository).update(mesero);
         verify(emailService).sendNotificacionEmail(
                 eq("juan@savanacoffee.com"),
                 eq("Desactivación de Cuenta"),

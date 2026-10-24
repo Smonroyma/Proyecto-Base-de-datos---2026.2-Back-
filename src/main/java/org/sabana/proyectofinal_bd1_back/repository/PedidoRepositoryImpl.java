@@ -27,11 +27,11 @@ public class PedidoRepositoryImpl implements PedidoRepository {
 
     private static final String BASE_SELECT = """
             SELECT p.id_pedido, p.id_cliente,
-                   CONCAT(c.nombres, ' ', c.apellidos) AS nombre_cliente,
+                   CONCAT(c.nombre, ' ', c.apellido) AS nombre_cliente,
                    p.numero_mesa,
                    p.id_usuario,
                    CONCAT(s.nombres, ' ', s.apellidos) AS nombre_usuario,
-                   p.fecha, p.estado, p.subtotal, p.observaciones
+                   p.fecha, p.estado, p.observaciones
             FROM pedido p
             INNER JOIN cliente c ON p.id_cliente = c.id_cliente
             INNER JOIN mesa m ON p.numero_mesa = m.numero_mesa
@@ -47,7 +47,6 @@ public class PedidoRepositoryImpl implements PedidoRepository {
             .nombreUsuario(rs.getString("nombre_usuario") != null ? rs.getString("nombre_usuario").trim() : null)
             .fecha(rs.getTimestamp("fecha") != null ? rs.getTimestamp("fecha").toLocalDateTime() : null)
             .estado(rs.getString("estado"))
-            .subtotal(rs.getObject("subtotal") != null ? rs.getDouble("subtotal") : 0.0)
             .observaciones(rs.getString("observaciones"))
             .detalles(new ArrayList<>())
             .build();
@@ -115,8 +114,8 @@ public class PedidoRepositoryImpl implements PedidoRepository {
     @Override
     public Pedido save(Pedido pedido) {
         String sql = """
-                INSERT INTO pedido (id_cliente, numero_mesa, id_usuario, fecha, estado, subtotal, observaciones)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO pedido (id_cliente, numero_mesa, id_usuario, fecha, estado, observaciones)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
         LocalDateTime fecha = pedido.getFecha() != null ? pedido.getFecha() : LocalDateTime.now();
@@ -129,8 +128,7 @@ public class PedidoRepositoryImpl implements PedidoRepository {
             ps.setLong(3, pedido.getIdUsuario());
             ps.setTimestamp(4, Timestamp.valueOf(fecha));
             ps.setString(5, estadoUpper);
-            ps.setDouble(6, pedido.getSubtotal() != null ? pedido.getSubtotal() : 0.0);
-            ps.setString(7, pedido.getObservaciones());
+            ps.setString(6, pedido.getObservaciones());
             return ps;
         }, keyHolder);
 

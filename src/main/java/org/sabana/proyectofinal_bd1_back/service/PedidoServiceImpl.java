@@ -34,7 +34,8 @@ import java.util.List;
  * Implementación de la lógica de negocio para la gestión transaccional de Pedidos y Detalles.
  * Regla V2:
  * - Todo pedido exige obligatoriamente una mesa (numeroMesa) y un cliente (idCliente).
- * - Se maneja subtotal (antes de IVA 19% y propina).
+ * - El subtotal (antes de IVA 19% y propina) NO se persiste: se calcula dinámicamente
+ *   sumando cantidad * precio de cada producto del detalle (ver SubtotalCalculator).
  * - Máquina de estados unidireccional estricta:
  *   PENDIENTE -> EN_PREPARACION | CANCELADO
  *   EN_PREPARACION -> ENTREGADO
@@ -97,44 +98,50 @@ public class PedidoServiceImpl implements PedidoService {
             throw new IllegalArgumentException("El pedido debe contener al menos un detalle de producto");
         }
 
-        double subtotalPedido = 0.0;
-        List<DetallePedido> detallesList = new ArrayList<>();
-
+        // Agrupación en lista pura (sin HashMaps) para sumar cantidades de productos repetidos
+        List<DetallePedido> detallesAgrupados = new ArrayList<>();
         for (DetallePedidoRequestDTO itemReq : requestDTO.getDetalles()) {
-            Producto producto = productoRepository.findById(itemReq.getIdProducto())
-                    .orElseThrow(() -> new ProductoNotFoundException(itemReq.getIdProducto()));
+            if (itemReq.getIdProducto() == null || itemReq.getCantidad() == null) {
+                continue;
+            }
+            boolean yaExiste = false;
+            for (DetallePedido existente : detallesAgrupados) {
+                if (existente.getIdProducto().equals(itemReq.getIdProducto())) {
+                    existente.setCantidad(existente.getCantidad() + itemReq.getCantidad());
+                    yaExiste = true;
+                    break;
+                }
+            }
+            if (!yaExiste) {
+                detallesAgrupados.add(DetallePedido.builder()
+                        .idProducto(itemReq.getIdProducto())
+                        .cantidad(itemReq.getCantidad())
+                        .build());
+            }
+        }
+
+        for (DetallePedido detalle : detallesAgrupados) {
+            Producto producto = productoRepository.findById(detalle.getIdProducto())
+                    .orElseThrow(() -> new ProductoNotFoundException(detalle.getIdProducto()));
 
             if (!Boolean.TRUE.equals(producto.getDisponibilidad())) {
                 throw new StockInsuficienteException(String.format(
                         "El producto '%s' no se encuentra disponible para la venta", producto.getNombre()));
             }
 
-            if (producto.getStock() == null || producto.getStock() < itemReq.getCantidad()) {
+            if (producto.getStock() == null || producto.getStock() < detalle.getCantidad()) {
                 throw new StockInsuficienteException(String.format(
                         "Stock insuficiente para el producto '%s'. Stock actual: %d, solicitado: %d",
-                        producto.getNombre(), producto.getStock() != null ? producto.getStock() : 0, itemReq.getCantidad()));
+                        producto.getNombre(), producto.getStock() != null ? producto.getStock() : 0, detalle.getCantidad()));
             }
 
-            double precioUnitario = producto.getPrecio();
-            double subtotalItem = Math.round(precioUnitario * itemReq.getCantidad() * 100.0) / 100.0;
-            subtotalPedido += subtotalItem;
-
-            int nuevoStock = producto.getStock() - itemReq.getCantidad();
+            int nuevoStock = producto.getStock() - detalle.getCantidad();
             productoRepository.updateStock(producto.getIdProducto(), nuevoStock);
             producto.setStock(nuevoStock);
 
-            DetallePedido detalle = DetallePedido.builder()
-                    .idProducto(producto.getIdProducto())
-                    .nombreProducto(producto.getNombre())
-                    .cantidad(itemReq.getCantidad())
-                    .precioUnitario(precioUnitario)
-                    .subtotal(subtotalItem)
-                    .build();
-
-            detallesList.add(detalle);
+            detalle.setNombreProducto(producto.getNombre());
+            detalle.setPrecioUnitario(producto.getPrecio());
         }
-
-        subtotalPedido = Math.round(subtotalPedido * 100.0) / 100.0;
 
         Pedido pedido = Pedido.builder()
                 .idCliente(cliente.getIdCliente())
@@ -144,18 +151,17 @@ public class PedidoServiceImpl implements PedidoService {
                 .nombreUsuario(staff.getNombreCompleto())
                 .fecha(LocalDateTime.now())
                 .estado(EstadoPedido.PENDIENTE.name())
-                .subtotal(subtotalPedido)
                 .observaciones(requestDTO.getObservaciones())
                 .build();
 
         Pedido pedidoGuardado = pedidoRepository.save(pedido);
 
-        for (DetallePedido d : detallesList) {
+        for (DetallePedido d : detallesAgrupados) {
             d.setIdPedido(pedidoGuardado.getIdPedido());
         }
 
-        detallePedidoRepository.saveBatch(detallesList);
-        pedidoGuardado.setDetalles(detallesList);
+        detallePedidoRepository.saveBatch(detallesAgrupados);
+        pedidoGuardado.setDetalles(detallesAgrupados);
 
         return pedidoMapper.toResponseDTO(pedidoGuardado);
     }

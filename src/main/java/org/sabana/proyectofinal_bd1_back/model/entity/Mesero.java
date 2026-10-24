@@ -8,7 +8,8 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Entidad hija Empleado (Mesero/Operativo) que hereda 1:1 de Staff.
+ * Entidad de dominio Mesero que hereda 1:1 de Staff.
+ * POJO puro sin anotaciones de persistencia JPA.
  * Incluye el atributo estado (ACTIVO / INACTIVO).
  */
 @Data
@@ -17,7 +18,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class Empleado extends Staff {
+public class Mesero extends Staff {
 
     private String estado; // ACTIVO, INACTIVO
 

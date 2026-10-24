@@ -19,9 +19,6 @@ public class MetodoPagoRepositoryImpl implements MetodoPagoRepository {
 
     private final RowMapper<MetodoPago> metodoPagoRowMapper = (rs, rowNum) -> MetodoPago.builder()
             .tipo(rs.getString("tipo"))
-            .nombre(rs.getString("nombre"))
-            .descripcion(rs.getString("descripcion"))
-            .activo(rs.getBoolean("activo"))
             .build();
 
     public MetodoPagoRepositoryImpl(JdbcTemplate jdbcTemplate) {
@@ -30,7 +27,7 @@ public class MetodoPagoRepositoryImpl implements MetodoPagoRepository {
 
     @Override
     public Optional<MetodoPago> findByTipo(String tipo) {
-        String sql = "SELECT tipo, nombre, descripcion, activo FROM metodo_pago WHERE UPPER(TRIM(tipo)) = UPPER(TRIM(?))";
+        String sql = "SELECT tipo FROM metodo_pago WHERE UPPER(TRIM(tipo)) = UPPER(TRIM(?))";
         try {
             MetodoPago metodoPago = jdbcTemplate.queryForObject(sql, metodoPagoRowMapper, tipo);
             return Optional.ofNullable(metodoPago);
@@ -41,58 +38,31 @@ public class MetodoPagoRepositoryImpl implements MetodoPagoRepository {
 
     @Override
     public List<MetodoPago> findAll() {
-        String sql = "SELECT tipo, nombre, descripcion, activo FROM metodo_pago ORDER BY tipo ASC";
+        String sql = "SELECT tipo FROM metodo_pago ORDER BY tipo ASC";
         return jdbcTemplate.query(sql, metodoPagoRowMapper);
     }
 
     @Override
     public List<MetodoPago> findAllActivos() {
-        String sql = "SELECT tipo, nombre, descripcion, activo FROM metodo_pago WHERE activo = true ORDER BY tipo ASC";
+        String sql = "SELECT tipo FROM metodo_pago ORDER BY tipo ASC";
         return jdbcTemplate.query(sql, metodoPagoRowMapper);
     }
 
     @Override
     public MetodoPago save(MetodoPago metodoPago) {
-        String sql = "INSERT INTO metodo_pago (tipo, nombre, descripcion, activo) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO metodo_pago (tipo) VALUES (?)";
         String tipoUpper = metodoPago.getTipo() != null ? metodoPago.getTipo().trim().toUpperCase() : "";
-        String nombreEfectivo = (metodoPago.getNombre() != null && !metodoPago.getNombre().isBlank())
-                ? metodoPago.getNombre().trim()
-                : tipoUpper;
-        boolean activoEfectivo = metodoPago.getActivo() == null || metodoPago.getActivo();
-
-        jdbcTemplate.update(
-                sql,
-                tipoUpper,
-                nombreEfectivo,
-                metodoPago.getDescripcion(),
-                activoEfectivo
-        );
+        jdbcTemplate.update(sql, tipoUpper);
         metodoPago.setTipo(tipoUpper);
-        metodoPago.setNombre(nombreEfectivo);
-        metodoPago.setActivo(activoEfectivo);
         return metodoPago;
     }
 
     @Override
     public MetodoPago update(String tipoOriginal, MetodoPago metodoPago) {
-        String sql = "UPDATE metodo_pago SET tipo = ?, nombre = ?, descripcion = ?, activo = ? WHERE UPPER(TRIM(tipo)) = UPPER(TRIM(?))";
+        String sql = "UPDATE metodo_pago SET tipo = ? WHERE UPPER(TRIM(tipo)) = UPPER(TRIM(?))";
         String tipoUpper = metodoPago.getTipo() != null ? metodoPago.getTipo().trim().toUpperCase() : "";
-        String nombreEfectivo = (metodoPago.getNombre() != null && !metodoPago.getNombre().isBlank())
-                ? metodoPago.getNombre().trim()
-                : tipoUpper;
-        boolean activoEfectivo = metodoPago.getActivo() == null || metodoPago.getActivo();
-
-        jdbcTemplate.update(
-                sql,
-                tipoUpper,
-                nombreEfectivo,
-                metodoPago.getDescripcion(),
-                activoEfectivo,
-                tipoOriginal
-        );
+        jdbcTemplate.update(sql, tipoUpper, tipoOriginal);
         metodoPago.setTipo(tipoUpper);
-        metodoPago.setNombre(nombreEfectivo);
-        metodoPago.setActivo(activoEfectivo);
         return metodoPago;
     }
 

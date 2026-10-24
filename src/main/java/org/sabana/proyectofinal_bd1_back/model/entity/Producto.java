@@ -7,7 +7,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * Entidad de dominio Producto.
- * Mapea directamente la tabla de base de datos 'producto' sin anotaciones JPA.
+ * POJO puro sin anotaciones de persistencia JPA.
+ * Representa la tabla 'producto'.
  */
 @Data
 @Builder

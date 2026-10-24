@@ -2,7 +2,7 @@ package org.sabana.proyectofinal_bd1_back.repository;
 
 import org.sabana.proyectofinal_bd1_back.model.entity.EstadoFactura;
 import org.sabana.proyectofinal_bd1_back.model.entity.Factura;
-import org.sabana.proyectofinal_bd1_back.model.entity.PagoFactura;
+import org.sabana.proyectofinal_bd1_back.model.entity.Pago;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -24,40 +24,51 @@ public class FacturaRepositoryImpl implements FacturaRepository {
     private final JdbcTemplate jdbcTemplate;
     private final PagoFacturaRepository pagoFacturaRepository;
 
+    /**
+     * La factura ya no persiste id_cliente ni id_usuario: el cliente y el mesero
+     * se resuelven navegando la relación 1:1 obligatoria factura -> pedido.
+     */
     private static final String BASE_SELECT = """
             SELECT f.num_factura, f.id_pedido,
-                   f.id_cliente,
-                   CONCAT(c.nombres, ' ', c.apellidos) AS nombre_cliente,
-                   c.correo AS correo_cliente,
-                   c.telefono AS telefono_cliente,
-                   f.id_usuario,
-                   CONCAT(s.nombres, ' ', s.apellidos) AS nombre_usuario,
-                   f.fecha, f.estado, f.subtotal, f.propina, f.impuesto, f.total
+                   f.fecha, f.estado, f.propina, f.impuesto, f.total,
+                   p.fecha AS fecha_pedido, p.estado AS estado_pedido, p.observaciones AS observaciones_pedido,
+                   c.id_cliente, c.nombre AS nombre_cliente, c.apellido AS apellido_cliente,
+                   c.correo AS correo_cliente, c.telefono AS telefono_cliente,
+                   s.id_usuario, s.nombres AS nombres_usuario, s.apellidos AS apellidos_usuario,
+                   s.correo AS correo_usuario
             FROM factura f
             INNER JOIN pedido p ON f.id_pedido = p.id_pedido
-            INNER JOIN cliente c ON f.id_cliente = c.id_cliente
-            INNER JOIN staff s ON f.id_usuario = s.id_usuario
+            INNER JOIN cliente c ON p.id_cliente = c.id_cliente
+            INNER JOIN staff s ON p.id_usuario = s.id_usuario
             """;
 
-    private final RowMapper<Factura> facturaRowMapper = (rs, rowNum) -> Factura.builder()
-            .numFactura(rs.getString("num_factura"))
-            .idPedido(rs.getObject("id_pedido") != null ? rs.getLong("id_pedido") : null)
-            .idCliente(rs.getObject("id_cliente") != null ? rs.getLong("id_cliente") : null)
-            .nombreCliente(rs.getString("nombre_cliente") != null ? rs.getString("nombre_cliente").trim() : null)
-            .correoCliente(rs.getString("correo_cliente"))
-            .telefonoCliente(rs.getString("telefono_cliente"))
-            .idUsuario(rs.getObject("id_usuario") != null ? rs.getLong("id_usuario") : null)
-            .nombreUsuario(rs.getString("nombre_usuario") != null ? rs.getString("nombre_usuario").trim() : null)
-            .fecha(rs.getTimestamp("fecha") != null
-                    ? rs.getTimestamp("fecha").toLocalDateTime()
-                    : null)
-            .estado(rs.getString("estado"))
-            .subtotal(rs.getObject("subtotal") != null ? rs.getDouble("subtotal") : 0.0)
-            .propina(rs.getObject("propina") != null ? rs.getDouble("propina") : 0.0)
-            .impuesto(rs.getObject("impuesto") != null ? rs.getDouble("impuesto") : 0.0)
-            .total(rs.getObject("total") != null ? rs.getDouble("total") : 0.0)
-            .pagos(new ArrayList<>())
-            .build();
+    private final RowMapper<Factura> facturaRowMapper = (rs, rowNum) -> {
+        Long idPedido = rs.getObject("id_pedido") != null ? rs.getLong("id_pedido") : null;
+
+        String nombre = rs.getString("nombre_cliente");
+        String apellido = rs.getString("apellido_cliente");
+        String nombreCliente = ((nombre != null ? nombre : "") + " " + (apellido != null ? apellido : "")).trim();
+
+        String nombresUsuario = rs.getString("nombres_usuario");
+        String apellidosUsuario = rs.getString("apellidos_usuario");
+        String nombreUsuario = ((nombresUsuario != null ? nombresUsuario : "") + " " + (apellidosUsuario != null ? apellidosUsuario : "")).trim();
+
+        Timestamp fecha = rs.getTimestamp("fecha");
+        return Factura.builder()
+                .numFactura(rs.getString("num_factura"))
+                .idPedido(idPedido)
+                .nombreCliente(nombreCliente.isBlank() ? null : nombreCliente)
+                .correoCliente(rs.getString("correo_cliente"))
+                .telefonoCliente(rs.getString("telefono_cliente"))
+                .nombreUsuario(nombreUsuario.isBlank() ? null : nombreUsuario)
+                .fecha(fecha != null ? fecha.toLocalDateTime() : null)
+                .estado(rs.getString("estado"))
+                .propina(rs.getObject("propina") != null ? rs.getDouble("propina") : 0.0)
+                .impuesto(rs.getObject("impuesto") != null ? rs.getDouble("impuesto") : 0.0)
+                .total(rs.getObject("total") != null ? rs.getDouble("total") : 0.0)
+                .pagos(new ArrayList<>())
+                .build();
+    };
 
     public FacturaRepositoryImpl(JdbcTemplate jdbcTemplate, PagoFacturaRepository pagoFacturaRepository) {
         this.jdbcTemplate = jdbcTemplate;
@@ -70,7 +81,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
         try {
             Factura factura = jdbcTemplate.queryForObject(sql, facturaRowMapper, numFactura);
             if (factura != null) {
-                List<PagoFactura> pagos = pagoFacturaRepository.findByNumFactura(factura.getNumFactura());
+                List<Pago> pagos = pagoFacturaRepository.findByNumFactura(factura.getNumFactura());
                 factura.setPagos(pagos);
             }
             return Optional.ofNullable(factura);
@@ -93,7 +104,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
         try {
             Factura factura = jdbcTemplate.queryForObject(sql, facturaRowMapper, idPedido);
             if (factura != null) {
-                List<PagoFactura> pagos = pagoFacturaRepository.findByNumFactura(factura.getNumFactura());
+                List<Pago> pagos = pagoFacturaRepository.findByNumFactura(factura.getNumFactura());
                 factura.setPagos(pagos);
             }
             return Optional.ofNullable(factura);
@@ -104,7 +115,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
 
     @Override
     public List<Factura> findByClienteId(Long idCliente) {
-        String sql = BASE_SELECT + " WHERE f.id_cliente = ? ORDER BY f.fecha DESC, f.num_factura DESC";
+        String sql = BASE_SELECT + " WHERE p.id_cliente = ? ORDER BY f.fecha DESC, f.num_factura DESC";
         List<Factura> facturas = jdbcTemplate.query(sql, facturaRowMapper, idCliente);
         cargarPagosEnLista(facturas);
         return facturas;
@@ -126,9 +137,8 @@ public class FacturaRepositoryImpl implements FacturaRepository {
     @Override
     public Factura save(Factura factura) {
         String sql = """
-                INSERT INTO factura (num_factura, id_pedido, id_cliente, id_usuario, fecha,
-                                     estado, subtotal, propina, impuesto, total)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO factura (num_factura, id_pedido, fecha, estado, propina, impuesto, total)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         LocalDateTime fecha = factura.getFecha() != null ? factura.getFecha() : LocalDateTime.now();
         String estadoUpper = factura.getEstado() != null
@@ -139,11 +149,8 @@ public class FacturaRepositoryImpl implements FacturaRepository {
                 sql,
                 factura.getNumFactura(),
                 factura.getIdPedido(),
-                factura.getIdCliente(),
-                factura.getIdUsuario(),
                 Timestamp.valueOf(fecha),
                 estadoUpper,
-                factura.getSubtotal() != null ? factura.getSubtotal() : 0.0,
                 factura.getPropina() != null ? factura.getPropina() : 0.0,
                 factura.getImpuesto() != null ? factura.getImpuesto() : 0.0,
                 factura.getTotal() != null ? factura.getTotal() : 0.0
@@ -172,7 +179,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
 
     private void cargarPagosEnLista(List<Factura> facturas) {
         for (Factura f : facturas) {
-            List<PagoFactura> pagos = pagoFacturaRepository.findByNumFactura(f.getNumFactura());
+            List<Pago> pagos = pagoFacturaRepository.findByNumFactura(f.getNumFactura());
             f.setPagos(pagos);
         }
     }

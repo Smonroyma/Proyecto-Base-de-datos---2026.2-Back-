@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Entidad de dominio Mesa.
- * Mapea directamente la tabla mesa de la base de datos sin anotaciones JPA.
+ * POJO puro sin anotaciones de persistencia JPA.
  * La llave primaria es numero_mesa (Integer).
  */
 @Data

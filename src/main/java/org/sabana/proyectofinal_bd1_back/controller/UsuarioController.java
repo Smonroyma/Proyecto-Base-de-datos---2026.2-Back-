@@ -32,12 +32,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controlador REST para la gestión y administración de Staff (Administradores y Empleados).
+ * Controlador REST para la gestión y administración de Staff (Administradores y Meseros).
  * Protegido para acceso exclusivo de usuarios con rol ADMINISTRADOR.
  */
 @RestController
-@RequestMapping({"/api/usuarios", "/api/staff", "/api/empleados"})
-@Tag(name = "Staff / Usuarios", description = "Endpoints administrativos para la gestión de Administradores y Empleados (Exclusivo rol ADMINISTRADOR)")
+@RequestMapping({"/api/usuarios", "/api/staff", "/api/meseros"})
+@Tag(name = "Staff / Usuarios", description = "Endpoints administrativos para la gestión de Administradores y Meseros (Exclusivo rol ADMINISTRADOR)")
 @SecurityRequirement(name = "Bearer Authentication")
 @PreAuthorize("hasRole('ADMINISTRADOR')")
 public class UsuarioController {
@@ -49,7 +49,7 @@ public class UsuarioController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todo el Staff", description = "Obtiene la lista completa de empleados y administradores registrados.")
+    @Operation(summary = "Listar todo el Staff", description = "Obtiene la lista completa de meseros y administradores registrados.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de staff obtenida exitosamente",
                     content = @Content(mediaType = "application/json",
@@ -65,7 +65,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Buscar miembro de Staff por ID", description = "Retorna los datos de un administrador o empleado dado su ID único.")
+    @Operation(summary = "Buscar miembro de Staff por ID", description = "Retorna los datos de un administrador o mesero dado su ID único.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Miembro de staff encontrado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
@@ -80,7 +80,7 @@ public class UsuarioController {
     }
 
     @PostMapping
-    @Operation(summary = "Crear nuevo miembro de Staff", description = "Registra un nuevo empleado o administrador en las tablas staff y empleado/administrador.")
+    @Operation(summary = "Crear nuevo miembro de Staff", description = "Registra un nuevo mesero o administrador en las tablas staff y mesero/administrador.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Miembro de staff creado exitosamente",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
@@ -115,17 +115,17 @@ public class UsuarioController {
     }
 
     @PatchMapping("/{id}/estado")
-    @Operation(summary = "Activar o desactivar Empleado", description = "Actualiza el estado operativo de un empleado (ACTIVO o INACTIVO).")
+    @Operation(summary = "Activar o desactivar Mesero", description = "Actualiza el estado operativo de un mesero (ACTIVO o INACTIVO).")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Estado del empleado actualizado exitosamente",
+            @ApiResponse(responseCode = "200", description = "Estado del mesero actualizado exitosamente",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Estado inválido",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Empleado no encontrado",
+            @ApiResponse(responseCode = "404", description = "Mesero no encontrado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     public ResponseEntity<UsuarioResponseDTO> cambiarEstado(
-            @Parameter(description = "Identificador único del empleado", example = "2", required = true)
+            @Parameter(description = "Identificador único del mesero", example = "2", required = true)
             @PathVariable Long id,
             @RequestParam(name = "estado", required = false) String estadoParam,
             @RequestBody(required = false) Map<String, String> body) {

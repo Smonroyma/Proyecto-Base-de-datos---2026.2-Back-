@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO para el registro o actualización de un miembro de Staff (Administrador o Empleado).
+ * DTO para el registro o actualización de un miembro de Staff (Administrador o Mesero).
  */
 @Data
 @Builder
@@ -47,10 +47,10 @@ public class UsuarioRequestDTO {
 
     @NotBlank(message = "El rol del usuario es obligatorio")
     @Pattern(
-            regexp = "^(?i)(ADMINISTRADOR|EMPLEADO)$",
-            message = "El rol debe ser uno de los permitidos: ADMINISTRADOR, EMPLEADO"
+            regexp = "^(?i)(ADMINISTRADOR|MESERO)$",
+            message = "El rol debe ser uno de los permitidos: ADMINISTRADOR, MESERO"
     )
-    @Schema(description = "Rol operativo del miembro de staff", example = "EMPLEADO", allowableValues = {"ADMINISTRADOR", "EMPLEADO"})
+    @Schema(description = "Rol operativo del miembro de staff", example = "MESERO", allowableValues = {"ADMINISTRADOR", "MESERO"})
     private String rol;
 
     @JsonAlias({"dosFactoresHabilitado"})
@@ -59,9 +59,9 @@ public class UsuarioRequestDTO {
 
     @Pattern(
             regexp = "^(?i)(ACTIVO|INACTIVO)$",
-            message = "El estado del empleado debe ser ACTIVO o INACTIVO"
+            message = "El estado del mesero debe ser ACTIVO o INACTIVO"
     )
-    @Schema(description = "Estado operativo del empleado (solo aplica para rol EMPLEADO)", example = "ACTIVO", allowableValues = {"ACTIVO", "INACTIVO"})
+    @Schema(description = "Estado operativo del mesero (solo aplica para rol MESERO)", example = "ACTIVO", allowableValues = {"ACTIVO", "INACTIVO"})
     private String estado;
 
 }

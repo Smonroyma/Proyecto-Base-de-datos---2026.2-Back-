@@ -11,7 +11,7 @@ import org.sabana.proyectofinal_bd1_back.model.entity.EstadoFactura;
 import org.sabana.proyectofinal_bd1_back.model.entity.EstadoPedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Factura;
 import org.sabana.proyectofinal_bd1_back.model.entity.MetodoPago;
-import org.sabana.proyectofinal_bd1_back.model.entity.PagoFactura;
+import org.sabana.proyectofinal_bd1_back.model.entity.Pago;
 import org.sabana.proyectofinal_bd1_back.model.entity.Pedido;
 import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.ClienteRepository;
@@ -21,6 +21,7 @@ import org.sabana.proyectofinal_bd1_back.repository.MetodoPagoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PagoFacturaRepository;
 import org.sabana.proyectofinal_bd1_back.repository.PedidoRepository;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
+import org.sabana.proyectofinal_bd1_back.util.SubtotalCalculator;
 import org.sabana.proyectofinal_bd1_back.util.email.EmailService;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundException;
 import org.sabana.proyectofinal_bd1_back.util.exceptions.FacturaNotFoundException;
@@ -94,9 +95,10 @@ public class FacturaServiceImpl implements FacturaService {
                     pedido.getIdPedido()));
         }
 
-        Long idUsuarioEfectivo = requestDTO.getIdUsuario() != null ? requestDTO.getIdUsuario() : pedido.getIdUsuario();
-        Staff staff = usuarioRepository.findById(idUsuarioEfectivo)
-                .orElseThrow(() -> new UsuarioNotFoundException(idUsuarioEfectivo));
+        // La factura no persiste id_usuario ni id_cliente: ambos se resuelven a través del Pedido (1:1).
+        Long idUsuarioPedido = pedido.getIdUsuario();
+        Staff staff = usuarioRepository.findById(idUsuarioPedido)
+                .orElseThrow(() -> new UsuarioNotFoundException(idUsuarioPedido));
 
         Cliente cliente = clienteRepository.findById(pedido.getIdCliente())
                 .orElseThrow(() -> new ClienteNotFoundException(pedido.getIdCliente()));
@@ -111,16 +113,17 @@ public class FacturaServiceImpl implements FacturaService {
             throw new PagoInvalidoException("El monto de la propina no puede ser negativo");
         }
 
-        double subtotal = pedido.getSubtotal() != null ? pedido.getSubtotal() : 0.0;
+        // Subtotal calculado dinámicamente (cantidad * precio de cada producto del detalle); no se persiste.
+        double subtotal = SubtotalCalculator.calcularSubtotal(pedido);
         double impuesto = Math.round(subtotal * PORCENTAJE_IVA * 100.0) / 100.0;
         double totalCalculado = Math.round((subtotal + impuesto + propina) * 100.0) / 100.0;
 
         double sumaPagos = 0.0;
-        List<PagoFactura> pagosList = new ArrayList<>();
+        List<Pago> pagosList = new ArrayList<>();
         LocalDateTime ahora = LocalDateTime.now();
 
         for (PagoRequestDTO pagoReq : itemsPago) {
-            if (pagoReq.getTotal() == null || pagoReq.getTotal() <= 0.0) {
+            if (pagoReq.getMonto() == null || pagoReq.getMonto() <= 0.0) {
                 throw new PagoInvalidoException("Cada pago registrado debe tener un monto mayor a cero");
             }
             if (pagoReq.getTipoMetodoPago() == null || pagoReq.getTipoMetodoPago().isBlank()) {
@@ -131,24 +134,16 @@ public class FacturaServiceImpl implements FacturaService {
                     .orElseThrow(() -> new MetodoPagoNotFoundException(
                             String.format("No se encontró el método de pago de tipo: '%s'", pagoReq.getTipoMetodoPago())));
 
-            if (!Boolean.TRUE.equals(metodoPago.getActivo())) {
-                throw new PagoInvalidoException(String.format(
-                        "El método de pago '%s' (tipo: %s) no se encuentra activo para procesar transacciones",
-                        metodoPago.getNombre(), metodoPago.getTipo()));
-            }
+            sumaPagos += pagoReq.getMonto();
 
-            sumaPagos += pagoReq.getTotal();
-
-            PagoFactura pagoFactura = PagoFactura.builder()
+            Pago pago = Pago.builder()
                     .tipoMetodoPago(metodoPago.getTipo())
-                    .nombreMetodoPago(metodoPago.getNombre())
-                    .total(pagoReq.getTotal())
+                    .monto(pagoReq.getMonto())
                     .estado("PAGADO")
-                    .referenciaTransaccion(pagoReq.getReferenciaTransaccion())
                     .fecha(ahora)
                     .build();
 
-            pagosList.add(pagoFactura);
+            pagosList.add(pago);
         }
 
         sumaPagos = Math.round(sumaPagos * 100.0) / 100.0;
@@ -164,15 +159,12 @@ public class FacturaServiceImpl implements FacturaService {
         Factura factura = Factura.builder()
                 .numFactura(numFactura)
                 .idPedido(pedido.getIdPedido())
-                .idCliente(cliente.getIdCliente())
-                .nombreCliente(cliente.getNombreCompleto())
-                .correoCliente(cliente.getCorreo())
-                .telefonoCliente(cliente.getTelefono())
-                .idUsuario(staff.getIdUsuario())
-                .nombreUsuario(staff.getNombreCompleto())
+                .nombreCliente(cliente != null ? cliente.getNombreCompleto() : pedido.getNombreCliente())
+                .correoCliente(cliente != null ? cliente.getCorreo() : null)
+                .telefonoCliente(cliente != null ? cliente.getTelefono() : null)
+                .nombreUsuario(staff != null ? staff.getNombreCompleto() : pedido.getNombreUsuario())
                 .fecha(ahora)
                 .estado(EstadoFactura.PAGADA.name())
-                .subtotal(subtotal)
                 .propina(propina)
                 .impuesto(impuesto)
                 .total(totalCalculado)
@@ -180,7 +172,7 @@ public class FacturaServiceImpl implements FacturaService {
 
         Factura facturaGuardada = facturaRepository.save(factura);
 
-        for (PagoFactura pago : pagosList) {
+        for (Pago pago : pagosList) {
             pago.setNumFactura(facturaGuardada.getNumFactura());
         }
 
@@ -250,7 +242,7 @@ public class FacturaServiceImpl implements FacturaService {
     @Override
     @Transactional(readOnly = true)
     public List<PagoResponseDTO> obtenerPagos(String numFactura) {
-        List<PagoFactura> pagos;
+        List<Pago> pagos;
         if (numFactura != null && !numFactura.isBlank()) {
             pagos = pagoFacturaRepository.findByNumFactura(numFactura.trim());
         } else {

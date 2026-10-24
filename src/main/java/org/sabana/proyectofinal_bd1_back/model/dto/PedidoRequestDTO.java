@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * DTO de entrada para la creación de un nuevo pedido en Savana Data Coffee.
- * Regla V2: Todo pedido es exclusivamente en mesa y requiere numeroMesa, idCliente e idUsuario.
+ * Todo pedido es exclusivamente en mesa y requiere numeroMesa, idCliente e idUsuario (Mesero).
  */
 @Data
 @Builder
@@ -34,8 +34,8 @@ public class PedidoRequestDTO {
     @Schema(description = "Número único de la mesa asociada al pedido", example = "3")
     private Integer numeroMesa;
 
-    @NotNull(message = "El identificador del empleado (Staff) es obligatorio")
-    @Schema(description = "ID del empleado que registra la orden", example = "2")
+    @NotNull(message = "El identificador del mesero (Staff) es obligatorio")
+    @Schema(description = "ID del mesero que registra la orden", example = "2")
     private Long idUsuario;
 
     @Schema(description = "Observaciones o instrucciones de preparación", example = "Café con leche deslactosada y poco azúcar")

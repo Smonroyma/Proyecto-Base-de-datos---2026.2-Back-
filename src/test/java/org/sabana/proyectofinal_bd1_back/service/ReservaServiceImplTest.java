@@ -76,11 +76,10 @@ class ReservaServiceImplTest {
 
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombres("Carlos")
-                .apellidos("Mendoza")
+                .nombre("Carlos")
+                .apellido("Mendoza")
                 .telefono("3001234567")
                 .correo("carlos@example.com")
-                .fechaRegistro(LocalDateTime.now().minusDays(10))
                 .build();
 
         mesa = Mesa.builder()
@@ -155,8 +154,8 @@ class ReservaServiceImplTest {
     @DisplayName("crear registra nuevo cliente permanentemente cuando correo no existe en BD")
     void crear_ClienteNuevoPorCorreo_GuardaPermanenteYCreaReserva() {
         ReservaRequestDTO reqConDatosCliente = ReservaRequestDTO.builder()
-                .nombres("Carlos")
-                .apellidos("Mendoza")
+                .nombre("Carlos")
+                .apellido("Mendoza")
                 .correo("carlos@example.com")
                 .telefono("3001234567")
                 .numeroMesa(5)

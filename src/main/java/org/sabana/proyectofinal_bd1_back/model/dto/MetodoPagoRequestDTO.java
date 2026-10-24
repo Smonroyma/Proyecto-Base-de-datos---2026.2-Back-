@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * DTO de entrada para la creación y actualización de un método de pago.
+ * Contiene únicamente el atributo tipo que lo identifica.
  */
 @Data
 @Builder
@@ -24,16 +25,5 @@ public class MetodoPagoRequestDTO {
     @JsonAlias({"codigo"})
     @Schema(description = "Tipo único identificador del método de pago (PK)", example = "EFECTIVO", allowableValues = {"EFECTIVO", "TARJETA", "TRANSFERENCIA"})
     private String tipo;
-
-    @Size(max = 100, message = "El nombre no puede exceder los 100 caracteres")
-    @Schema(description = "Nombre visible del método de pago", example = "Efectivo")
-    private String nombre;
-
-    @Size(max = 255, message = "La descripción no puede superar los 255 caracteres")
-    @Schema(description = "Descripción u observaciones operativas del medio de pago", example = "Pago en efectivo en caja")
-    private String descripcion;
-
-    @Schema(description = "Indica si el método de pago se encuentra habilitado para facturación", example = "true")
-    private Boolean activo;
 
 }

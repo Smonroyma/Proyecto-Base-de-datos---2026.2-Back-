@@ -32,10 +32,10 @@ public class PedidoResponseDTO {
     @Schema(description = "Número único de la mesa asignada", example = "3")
     private Integer numeroMesa;
 
-    @Schema(description = "ID del empleado (Staff) que registró la orden", example = "2")
+    @Schema(description = "ID del mesero (Staff) que registró la orden", example = "2")
     private Long idUsuario;
 
-    @Schema(description = "Nombre completo del empleado que atendió la orden", example = "Ana Gómez")
+    @Schema(description = "Nombre completo del mesero que atendió la orden", example = "Ana Gómez")
     private String nombreUsuario;
 
     @Schema(description = "Fecha y hora de registro del pedido", example = "2026-10-17T10:15:30")
@@ -44,7 +44,7 @@ public class PedidoResponseDTO {
     @Schema(description = "Estado actual del pedido", example = "PENDIENTE", allowableValues = {"PENDIENTE", "EN_PREPARACION", "ENTREGADO", "CANCELADO", "PAGADO"})
     private String estado;
 
-    @Schema(description = "Subtotal acumulado de los productos del pedido (antes de IVA y propina)", example = "28500.0")
+    @Schema(description = "Subtotal calculado dinámicamente de los productos del pedido (antes de IVA y propina)", example = "28500.0")
     private Double subtotal;
 
     @Schema(description = "Observaciones o instrucciones de la orden", example = "Café con leche deslactosada y poco azúcar")

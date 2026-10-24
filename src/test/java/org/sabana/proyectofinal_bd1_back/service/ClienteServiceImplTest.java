@@ -45,31 +45,27 @@ class ClienteServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        LocalDateTime now = LocalDateTime.now();
-
         cliente = Cliente.builder()
                 .idCliente(1L)
-                .nombres("Laura")
-                .apellidos("Gómez")
+                .nombre("Laura")
+                .apellido("Gómez")
                 .telefono("+57 310 9876543")
                 .correo("laura.gomez@savana.com")
-                .fechaRegistro(now)
                 .build();
 
         requestDTO = ClienteRequestDTO.builder()
-                .nombres("Laura")
-                .apellidos("Gómez")
+                .nombre("Laura")
+                .apellido("Gómez")
                 .telefono("+57 310 9876543")
                 .correo("laura.gomez@savana.com")
                 .build();
 
         responseDTO = ClienteResponseDTO.builder()
                 .idCliente(1L)
-                .nombres("Laura")
-                .apellidos("Gómez")
+                .nombre("Laura")
+                .apellido("Gómez")
                 .telefono("+57 310 9876543")
                 .correo("laura.gomez@savana.com")
-                .fechaRegistro(now)
                 .build();
     }
 
@@ -83,7 +79,7 @@ class ClienteServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getIdCliente());
-        assertEquals("Laura", result.getNombres());
+        assertEquals("Laura", result.getNombre());
         verify(clienteRepository).findById(1L);
     }
 

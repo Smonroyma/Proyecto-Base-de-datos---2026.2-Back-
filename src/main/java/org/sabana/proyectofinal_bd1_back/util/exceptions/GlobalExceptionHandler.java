@@ -77,6 +77,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    @ExceptionHandler({org.springframework.dao.DuplicateKeyException.class, org.springframework.dao.DataIntegrityViolationException.class})
+    public ResponseEntity<ErrorResponseDTO> handleDatabaseIntegrityConflictException(
+            Exception ex, HttpServletRequest request) {
+
+        ErrorResponseDTO error = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message("Conflicto de integridad en base de datos: el registro ya existe o viola una restricción de clave única o primaria compuesta.")
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponseDTO> handleIllegalStateException(
             IllegalStateException ex, HttpServletRequest request) {

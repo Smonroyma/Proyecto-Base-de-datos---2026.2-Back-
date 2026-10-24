@@ -8,8 +8,8 @@ import lombok.experimental.SuperBuilder;
 import java.time.LocalDate;
 
 /**
- * Entidad padre de dominio Staff.
- * Mapea directamente la tabla 'staff' de la base de datos sin anotaciones JPA.
+ * Entidad de dominio Staff.
+ * POJO puro sin anotaciones de persistencia JPA.
  */
 @Data
 @SuperBuilder
@@ -26,7 +26,7 @@ public class Staff {
     private LocalDate fechaInicio;
 
     /**
-     * Rol resuelto según la tabla hija (ADMINISTRADOR o EMPLEADO).
+     * Rol resuelto según la tabla hija (ADMINISTRADOR o MESERO).
      */
     private String rol;
 

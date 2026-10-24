@@ -11,8 +11,8 @@ import java.util.List;
 
 /**
  * Entidad de dominio Pedido.
- * Mapea directamente la tabla de base de datos 'pedido' sin anotaciones JPA.
- * Regla V2: Prohibido pedidos para llevar; todo pedido exige obligatoriamente numeroMesa y maneja subtotal.
+ * POJO puro sin anotaciones de persistencia JPA.
+ * Regla V3: El atributo subtotal NO existe en la entidad ni en la tabla; se calcula dinámicamente en el servicio.
  */
 @Data
 @Builder
@@ -21,15 +21,15 @@ import java.util.List;
 public class Pedido {
 
     private Long idPedido;
+    private LocalDateTime fecha;
+    private String estado;
+    private String observaciones;
+
     private Long idCliente;
     private String nombreCliente;
     private Integer numeroMesa;
     private Long idUsuario;
     private String nombreUsuario;
-    private LocalDateTime fecha;
-    private String estado;
-    private Double subtotal;
-    private String observaciones;
 
     @Builder.Default
     private List<DetallePedido> detalles = new ArrayList<>();

@@ -1,6 +1,6 @@
 package org.sabana.proyectofinal_bd1_back.repository;
 
-import org.sabana.proyectofinal_bd1_back.model.entity.PagoFactura;
+import org.sabana.proyectofinal_bd1_back.model.entity.Pago;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,12 +10,12 @@ import java.util.Optional;
  */
 public interface PagoFacturaRepository {
 
-    void saveBatch(List<PagoFactura> pagos);
+    void saveBatch(List<Pago> pagos);
 
-    List<PagoFactura> findByNumFactura(String numFactura);
+    List<Pago> findByNumFactura(String numFactura);
 
-    List<PagoFactura> findAll();
+    List<Pago> findAll();
 
-    Optional<PagoFactura> findById(Long idPago);
+    Optional<Pago> findById(Long idPago);
 
 }

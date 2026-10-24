@@ -1,6 +1,6 @@
 -- ====================================================================
--- SAVANA DATA COFFEE - SCRIPT DE INICIALIZACIÓN V2 (POSTGRESQL / H2)
--- Basado en el Diagrama Oficial Entidad-Relación en Mermaid
+-- SAVANA DATA COFFEE - SCRIPT DE INICIALIZACIÓN V3 (POSTGRESQL / H2)
+-- Basado en el Diagrama Oficial Entidad-Relación en Mermaid (MERE)
 -- ====================================================================
 
 DROP TABLE IF EXISTS pago CASCADE;
@@ -13,7 +13,7 @@ DROP TABLE IF EXISTS reserva CASCADE;
 DROP TABLE IF EXISTS producto CASCADE;
 DROP TABLE IF EXISTS categoria CASCADE;
 DROP TABLE IF EXISTS mesa CASCADE;
-DROP TABLE IF EXISTS empleado CASCADE;
+DROP TABLE IF EXISTS mesero CASCADE;
 DROP TABLE IF EXISTS administrador CASCADE;
 DROP TABLE IF EXISTS staff CASCADE;
 DROP TABLE IF EXISTS usuario CASCADE;
@@ -23,11 +23,10 @@ DROP TABLE IF EXISTS metodo_pago CASCADE;
 -- 1. TABLA: cliente (Comensales - Persistencia Permanente, correo y teléfono únicos)
 CREATE TABLE cliente (
     id_cliente BIGSERIAL PRIMARY KEY,
-    nombres VARCHAR(100) NOT NULL,
-    apellidos VARCHAR(100) NOT NULL DEFAULT '',
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL DEFAULT '',
     correo VARCHAR(150) NOT NULL UNIQUE,
-    telefono VARCHAR(20) NOT NULL UNIQUE,
-    fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    telefono VARCHAR(20) NOT NULL UNIQUE
 );
 
 -- 2. TABLA PADRE: staff (Jerarquía de personal sin columnas OTP en base de datos)
@@ -47,11 +46,11 @@ CREATE TABLE administrador (
     CONSTRAINT fk_admin_staff FOREIGN KEY (id_usuario) REFERENCES staff(id_usuario) ON DELETE CASCADE
 );
 
--- 4. TABLA HIJA 1:1: empleado (Hereda de staff con estado ACTIVO / INACTIVO)
-CREATE TABLE empleado (
+-- 4. TABLA HIJA 1:1: mesero (Hereda de staff con estado ACTIVO / INACTIVO)
+CREATE TABLE mesero (
     id_usuario BIGINT PRIMARY KEY,
     estado VARCHAR(30) NOT NULL DEFAULT 'ACTIVO', -- ACTIVO, INACTIVO
-    CONSTRAINT fk_empleado_staff FOREIGN KEY (id_usuario) REFERENCES staff(id_usuario) ON DELETE CASCADE
+    CONSTRAINT fk_mesero_staff FOREIGN KEY (id_usuario) REFERENCES staff(id_usuario) ON DELETE CASCADE
 );
 
 -- 5. TABLA: mesa (Salón y capacidad, PK por numero_mesa)
@@ -95,7 +94,7 @@ CREATE TABLE reserva (
     CONSTRAINT fk_reserva_mesa FOREIGN KEY (numero_mesa) REFERENCES mesa(numero_mesa)
 );
 
--- 9. TABLA: pedido (Comandas 100% en salón asociadas a mesa, cliente y staff)
+-- 9. TABLA: pedido (Comandas 100% en salón asociadas a mesa, cliente y staff; sin subtotal persistido)
 CREATE TABLE pedido (
     id_pedido BIGSERIAL PRIMARY KEY,
     id_cliente BIGINT NOT NULL,
@@ -103,59 +102,47 @@ CREATE TABLE pedido (
     id_usuario BIGINT NOT NULL,
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE', -- PENDIENTE, EN_PREPARACION, ENTREGADO, PAGADO, CANCELADO
-    subtotal DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     observaciones TEXT,
     CONSTRAINT fk_pedido_cliente FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
     CONSTRAINT fk_pedido_mesa FOREIGN KEY (numero_mesa) REFERENCES mesa(numero_mesa),
     CONSTRAINT fk_pedido_staff FOREIGN KEY (id_usuario) REFERENCES staff(id_usuario)
 );
 
--- 10. TABLA: detalle_pedido_contener (Relación N:M contener entre Pedido y Producto)
-CREATE TABLE detalle_pedido_contener (
-    id_detalle_pedido BIGSERIAL PRIMARY KEY,
+-- 10. TABLA: detalle_pedido (Relación N:M contener entre Pedido y Producto con clave compuesta)
+CREATE TABLE detalle_pedido (
     id_pedido BIGINT NOT NULL,
     id_producto BIGINT NOT NULL,
     cantidad INT NOT NULL,
-    precio_unitario DOUBLE PRECISION NOT NULL,
-    subtotal DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id_pedido, id_producto),
     CONSTRAINT fk_detalle_pedido FOREIGN KEY (id_pedido) REFERENCES pedido(id_pedido) ON DELETE CASCADE,
     CONSTRAINT fk_detalle_producto FOREIGN KEY (id_producto) REFERENCES producto(id_producto)
 );
 
--- 11. TABLA: metodo_pago (Medios de pago soportados con tipo como PK)
+-- 11. TABLA: metodo_pago (Medios de pago soportados con atributo único tipo como PK)
 CREATE TABLE metodo_pago (
-    tipo VARCHAR(50) PRIMARY KEY, -- EFECTIVO, TARJETA, TRANSFERENCIA
-    nombre VARCHAR(100) NOT NULL DEFAULT '',
-    descripcion TEXT,
-    activo BOOLEAN NOT NULL DEFAULT TRUE
+    tipo VARCHAR(50) PRIMARY KEY -- EFECTIVO, TARJETA, TRANSFERENCIA
 );
 
--- 12. TABLA: factura (Comprobante fiscal 1:1 con pedido, IVA 19%, sin descuento)
+-- 12. TABLA: factura (Comprobante fiscal 1:1 con pedido, IVA 19%, sin subtotal, id_cliente ni id_usuario)
 CREATE TABLE factura (
     num_factura VARCHAR(50) PRIMARY KEY,
     id_pedido BIGINT NOT NULL UNIQUE,
-    id_cliente BIGINT NOT NULL,
-    id_usuario BIGINT NOT NULL,
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado VARCHAR(30) NOT NULL DEFAULT 'PAGADA', -- EMITIDA, PAGADA
-    subtotal DOUBLE PRECISION NOT NULL,
     propina DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     impuesto DOUBLE PRECISION NOT NULL DEFAULT 0.0, -- 19% IVA
     total DOUBLE PRECISION NOT NULL,
-    CONSTRAINT fk_factura_pedido FOREIGN KEY (id_pedido) REFERENCES pedido(id_pedido),
-    CONSTRAINT fk_factura_cliente FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
-    CONSTRAINT fk_factura_staff FOREIGN KEY (id_usuario) REFERENCES staff(id_usuario)
+    CONSTRAINT fk_factura_pedido FOREIGN KEY (id_pedido) REFERENCES pedido(id_pedido)
 );
 
--- 13. TABLA: pago (Pagos asociados a una factura y a un metodo_pago)
+-- 13. TABLA: pago (Pagos asociados a una factura y a un metodo_pago con monto y sin referencia)
 CREATE TABLE pago (
     id_pago BIGSERIAL PRIMARY KEY,
     num_factura VARCHAR(50) NOT NULL,
     tipo_metodo_pago VARCHAR(50) NOT NULL,
     fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado VARCHAR(30) NOT NULL DEFAULT 'PAGADO', -- PENDIENTE, PAGADO
-    total DOUBLE PRECISION NOT NULL,
-    referencia_transaccion VARCHAR(100),
+    monto DOUBLE PRECISION NOT NULL,
     CONSTRAINT fk_pago_factura FOREIGN KEY (num_factura) REFERENCES factura(num_factura) ON DELETE CASCADE,
     CONSTRAINT fk_pago_metodo FOREIGN KEY (tipo_metodo_pago) REFERENCES metodo_pago(tipo)
 );
@@ -165,20 +152,20 @@ CREATE TABLE pago (
 -- Contraseña encriptada para todos los miembros de staff: Password123
 -- ====================================================================
 
--- 1. Staff y Herencia (Administrador y Empleados)
+-- 1. Staff y Herencia (Administrador y Meseros)
 INSERT INTO staff (nombres, apellidos, correo, contrasena, dos_fac_hab, fecha_inicio) VALUES
     ('Administrador', 'General', 'admin@savanacoffee.com', '$2a$10$rTNB5VmVVrmzQtG9/PJUgurx.wi1/VQwvRCsJGT15oe.J/qpSHN/S', false, CURRENT_DATE),
-    ('Carlos', 'Mesero', 'empleado@savanacoffee.com', '$2a$10$rTNB5VmVVrmzQtG9/PJUgurx.wi1/VQwvRCsJGT15oe.J/qpSHN/S', false, CURRENT_DATE),
+    ('Carlos', 'Mesero', 'mesero@savanacoffee.com', '$2a$10$rTNB5VmVVrmzQtG9/PJUgurx.wi1/VQwvRCsJGT15oe.J/qpSHN/S', false, CURRENT_DATE),
     ('Luisa', 'Operativa', 'luisa@savanacoffee.com', '$2a$10$rTNB5VmVVrmzQtG9/PJUgurx.wi1/VQwvRCsJGT15oe.J/qpSHN/S', false, CURRENT_DATE);
 
 INSERT INTO administrador (id_usuario) VALUES (1);
 
-INSERT INTO empleado (id_usuario, estado) VALUES
+INSERT INTO mesero (id_usuario, estado) VALUES
     (2, 'ACTIVO'),
     (3, 'ACTIVO');
 
 -- 2. Clientes de Ejemplo (Persistencia Permanente)
-INSERT INTO cliente (nombres, apellidos, correo, telefono) VALUES
+INSERT INTO cliente (nombre, apellido, correo, telefono) VALUES
     ('Mariana', 'Ruiz', 'mariana.ruiz@gmail.com', '3109876543'),
     ('Juan', 'Perez', 'juan.perez@hotmail.com', '3151234567');
 
@@ -190,11 +177,11 @@ INSERT INTO mesa (numero_mesa, capacidad, estado) VALUES
     (4, 6, 'DISPONIBLE'),
     (5, 8, 'DISPONIBLE');
 
--- 4. Métodos de Pago Oficiales
-INSERT INTO metodo_pago (tipo, nombre, descripcion, activo) VALUES
-    ('EFECTIVO', 'Efectivo', 'Pago directo en moneda local en caja', true),
-    ('TARJETA', 'Tarjeta Débito / Crédito', 'Pago mediante datáfono Redeban / Credibanco', true),
-    ('TRANSFERENCIA', 'Transferencia Electrónica', 'Pago por Nequi, Daviplata, PSE o código QR', true);
+-- 4. Métodos de Pago Oficiales (Atributo único tipo)
+INSERT INTO metodo_pago (tipo) VALUES
+    ('EFECTIVO'),
+    ('TARJETA'),
+    ('TRANSFERENCIA');
 
 -- 5. Categorías del Menú (PK nombre_categoria)
 INSERT INTO categoria (nombre_categoria, estado, descripcion) VALUES

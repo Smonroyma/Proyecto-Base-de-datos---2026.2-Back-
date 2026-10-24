@@ -4,7 +4,7 @@ import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioMapper;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioRequestDTO;
 import org.sabana.proyectofinal_bd1_back.model.dto.UsuarioResponseDTO;
 import org.sabana.proyectofinal_bd1_back.model.entity.Administrador;
-import org.sabana.proyectofinal_bd1_back.model.entity.Empleado;
+import org.sabana.proyectofinal_bd1_back.model.entity.Mesero;
 import org.sabana.proyectofinal_bd1_back.model.entity.RolUsuario;
 import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import org.sabana.proyectofinal_bd1_back.repository.UsuarioRepository;
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Implementación de la lógica de negocio para la administración de Staff (Administradores y Empleados).
+ * Implementación de la lógica de negocio para la administración de Staff (Administradores y Meseros).
  */
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
@@ -81,17 +81,17 @@ public class UsuarioServiceImpl implements UsuarioService {
         staff.setDosFacHab(Boolean.TRUE.equals(requestDTO.getDosFacHab()));
         staff.setFechaInicio(LocalDate.now());
 
-        if (staff instanceof Empleado empleado) {
+        if (staff instanceof Mesero mesero) {
             String estado = (requestDTO.getEstado() != null && !requestDTO.getEstado().isBlank())
                     ? requestDTO.getEstado().trim().toUpperCase()
                     : "ACTIVO";
-            empleado.setEstado(estado);
+            mesero.setEstado(estado);
         }
 
         Staff staffGuardado = usuarioRepository.save(staff);
 
         if (staffGuardado != null && staffGuardado.getCorreo() != null && !staffGuardado.getCorreo().isBlank()) {
-            String estadoCuenta = (staffGuardado instanceof Empleado emp) ? emp.getEstado() : "ACTIVO";
+            String estadoCuenta = (staffGuardado instanceof Mesero emp) ? emp.getEstado() : "ACTIVO";
             Map<String, String> detalles = new LinkedHashMap<>();
             detalles.put("Nombre", staffGuardado.getNombreCompleto());
             detalles.put("Correo Electrónico", staffGuardado.getCorreo());
@@ -149,13 +149,13 @@ public class UsuarioServiceImpl implements UsuarioService {
                     .rol("ADMINISTRADOR")
                     .build();
         } else {
-            String estadoEmpleado = "ACTIVO";
+            String estadoMesero = "ACTIVO";
             if (requestDTO.getEstado() != null && !requestDTO.getEstado().isBlank()) {
-                estadoEmpleado = requestDTO.getEstado().trim().toUpperCase();
-            } else if (existente instanceof Empleado empExistente && empExistente.getEstado() != null) {
-                estadoEmpleado = empExistente.getEstado();
+                estadoMesero = requestDTO.getEstado().trim().toUpperCase();
+            } else if (existente instanceof Mesero empExistente && empExistente.getEstado() != null) {
+                estadoMesero = empExistente.getEstado();
             }
-            entidadParaActualizar = Empleado.builder()
+            entidadParaActualizar = Mesero.builder()
                     .idUsuario(id)
                     .nombres(requestDTO.getNombres().trim())
                     .apellidos(apellidosFinal)
@@ -163,14 +163,14 @@ public class UsuarioServiceImpl implements UsuarioService {
                     .contrasena(contrasenaFinal)
                     .dosFacHab(dosFacFinal)
                     .fechaInicio(existente.getFechaInicio())
-                    .rol("EMPLEADO")
-                    .estado(estadoEmpleado)
+                    .rol("MESERO")
+                    .estado(estadoMesero)
                     .build();
         }
 
         Staff actualizado = usuarioRepository.update(entidadParaActualizar);
 
-        if (actualizado instanceof Empleado emp && !emp.isActivo()) {
+        if (actualizado instanceof Mesero emp && !emp.isActivo()) {
             enviarNotificacionDesactivacion(actualizado);
         }
 
@@ -183,7 +183,7 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .orElseThrow(() -> new UserNotFoundException(id));
 
         if (nuevoEstado == null || (!"ACTIVO".equalsIgnoreCase(nuevoEstado.trim()) && !"INACTIVO".equalsIgnoreCase(nuevoEstado.trim()))) {
-            throw new IllegalArgumentException("El estado del empleado debe ser ACTIVO o INACTIVO");
+            throw new IllegalArgumentException("El estado del mesero debe ser ACTIVO o INACTIVO");
         }
 
         if (existente instanceof Administrador) {
@@ -191,8 +191,8 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
 
         String estadoNormalizado = nuevoEstado.trim().toUpperCase();
-        if (existente instanceof Empleado empleado) {
-            empleado.setEstado(estadoNormalizado);
+        if (existente instanceof Mesero mesero) {
+            mesero.setEstado(estadoNormalizado);
         }
 
         Staff actualizado = usuarioRepository.update(existente);
@@ -235,7 +235,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private void validarRol(String rol) {
         if (!RolUsuario.esValido(rol)) {
             throw new IllegalArgumentException(
-                    String.format("El rol '%s' no es válido. Los roles permitidos son: ADMINISTRADOR, EMPLEADO", rol)
+                    String.format("El rol '%s' no es válido. Los roles permitidos son: ADMINISTRADOR, MESERO", rol)
             );
         }
     }

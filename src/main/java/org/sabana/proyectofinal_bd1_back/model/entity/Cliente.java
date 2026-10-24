@@ -5,12 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * Entidad de dominio Cliente.
- * Mapea directamente la tabla cliente de la base de datos sin anotaciones JPA.
- * Regla de negocio: El cliente no tiene cuenta ni contraseña y siempre se guarda permanentemente en la BD.
+ * POJO puro sin anotaciones de persistencia JPA.
+ * Representa la tabla 'cliente'.
  */
 @Data
 @Builder
@@ -19,17 +17,16 @@ import java.time.LocalDateTime;
 public class Cliente {
 
     private Long idCliente;
-    private String nombres;
-    private String apellidos;
+    private String nombre;
+    private String apellido;
     private String correo;
     private String telefono;
-    private LocalDateTime fechaRegistro;
 
     public String getNombreCompleto() {
-        if (apellidos == null || apellidos.isBlank()) {
-            return nombres != null ? nombres : "";
+        if (apellido == null || apellido.isBlank()) {
+            return nombre != null ? nombre : "";
         }
-        return (nombres != null ? nombres : "") + " " + apellidos;
+        return (nombre != null ? nombre : "") + " " + apellido;
     }
 
 }

@@ -216,22 +216,19 @@ public class EmailTemplateBuilder {
         StringBuilder filasPagos = new StringBuilder();
         if (factura.getPagos() != null && !factura.getPagos().isEmpty()) {
             for (PagoResponseDTO pago : factura.getPagos()) {
-                String referencia = (pago.getReferenciaTransaccion() != null && !pago.getReferenciaTransaccion().isBlank())
-                        ? " (Ref: " + pago.getReferenciaTransaccion() + ")"
-                        : "";
-                String etiquetaMetodo = pago.getNombreMetodoPago() != null
-                        ? pago.getNombreMetodoPago()
-                        : pago.getTipoMetodoPago();
+                String etiquetaMetodo = pago.getTipoMetodoPago() != null
+                        ? pago.getTipoMetodoPago()
+                        : "N/A";
                 filasPagos.append("""
                     <tr>
                       <td style="padding:6px 0; font-size:13px; color:#7F5539;">
-                        %s%s
+                        %s
                       </td>
                       <td align="right" style="padding:6px 0; font-size:13px; color:#432818; font-weight:bold;">
                         $%,.2f
                       </td>
                     </tr>
-                """.formatted(etiquetaMetodo, referencia, pago.getTotal() != null ? pago.getTotal() : 0.0));
+                """.formatted(etiquetaMetodo, pago.getMonto() != null ? pago.getMonto() : 0.0));
             }
         }
 
@@ -357,11 +354,21 @@ public class EmailTemplateBuilder {
                 factura.getTelefonoCliente() != null ? factura.getTelefonoCliente() : "N/A",
                 factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "Personal en turno",
                 factura.getIdPedido() != null ? factura.getIdPedido() : 0,
-                factura.getSubtotal() != null ? factura.getSubtotal() : 0.0,
+                calcularSubtotalFactura(factura),
                 factura.getImpuesto() != null ? factura.getImpuesto() : 0.0,
                 factura.getPropina() != null ? factura.getPropina() : 0.0,
                 factura.getTotal() != null ? factura.getTotal() : 0.0,
                 filasPagos.toString()
         );
+    }
+
+    /**
+     * La factura no persiste subtotal: se reconstruye como total - impuesto (19%) - propina.
+     */
+    private double calcularSubtotalFactura(FacturaResponseDTO factura) {
+        double total = factura.getTotal() != null ? factura.getTotal() : 0.0;
+        double impuesto = factura.getImpuesto() != null ? factura.getImpuesto() : 0.0;
+        double propina = factura.getPropina() != null ? factura.getPropina() : 0.0;
+        return Math.round((total - impuesto - propina) * 100.0) / 100.0;
     }
 }
