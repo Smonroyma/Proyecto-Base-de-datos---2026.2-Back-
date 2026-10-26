@@ -13,19 +13,21 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ReservaMapper {
 
-    @Mapping(target = "idReserva", ignore = true)
+    @Mapping(target = "idReservaCompuesta", expression = "java(dto.getIdReserva() != null && dto.getIdCliente() != null ? dto.getIdReserva() + \"_\" + dto.getIdCliente() : null)")
     @Mapping(target = "nombreCliente", ignore = true)
     @Mapping(target = "correoCliente", ignore = true)
     @Mapping(target = "fecha", expression = "java(dto.resolveFecha())")
     @Mapping(target = "hora", expression = "java(dto.resolveHora())")
     Reserva toEntity(ReservaRequestDTO dto);
 
+    @Mapping(target = "idReservaCompuesta", expression = "java(entity.getIdReservaCompuesta())")
     @Mapping(target = "fechaHora", expression = "java(entity.getFechaHora())")
     ReservaResponseDTO toResponseDTO(Reserva entity);
 
     List<ReservaResponseDTO> toResponseDTOList(List<Reserva> entities);
 
     @Mapping(target = "idReserva", ignore = true)
+    @Mapping(target = "idReservaCompuesta", ignore = true)
     @Mapping(target = "nombreCliente", ignore = true)
     @Mapping(target = "correoCliente", ignore = true)
     @Mapping(target = "fecha", expression = "java(dto.resolveFecha())")

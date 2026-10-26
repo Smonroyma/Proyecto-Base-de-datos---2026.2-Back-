@@ -20,6 +20,9 @@ import java.time.LocalTime;
 @Schema(description = "Respuesta detallada con los datos de una reserva en Savana Data Coffee")
 public class ReservaResponseDTO {
 
+    @Schema(description = "Clave primaria compuesta unida en el backend (idReserva_idCliente)", example = "1_1")
+    private String idReservaCompuesta;
+
     @Schema(description = "Identificador único de la reserva", example = "1")
     private Long idReserva;
 

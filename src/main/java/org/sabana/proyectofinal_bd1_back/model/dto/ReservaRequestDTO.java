@@ -27,7 +27,10 @@ import java.time.LocalTime;
 @Schema(description = "Datos para el registro o actualización de una reserva en Savana Data Coffee")
 public class ReservaRequestDTO {
 
-    @Schema(description = "Identificador único del cliente (opcional si se envían los datos del cliente con correo)", example = "1")
+    @Schema(description = "Identificador de la reserva (solicitado por separado en el DTO para unir la clave compuesta en el backend)", example = "1")
+    private Long idReserva;
+
+    @Schema(description = "Identificador único del cliente (solicitado por separado en el DTO; opcional si se envían los datos del cliente con correo)", example = "1")
     private Long idCliente;
 
     @JsonAlias({"nombres", "nombreCliente"})

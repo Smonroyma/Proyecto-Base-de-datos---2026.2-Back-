@@ -120,7 +120,7 @@ class FacturaServiceImplTest {
                 .idProducto(10L)
                 .nombreProducto("Café Americano")
                 .cantidad(2)
-                .precioUnitario(10000.0)
+                .precio(10000.0)
                 .build();
 
         // Subtotal calculado = 20000.0, Impuesto IVA 19% = 3800.0, Propina = 2000.0 -> Total = 25800.0

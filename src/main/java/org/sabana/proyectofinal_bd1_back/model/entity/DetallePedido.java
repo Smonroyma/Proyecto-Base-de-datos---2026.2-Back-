@@ -20,7 +20,7 @@ public class DetallePedido {
     private Long idPedido;
     private Long idProducto;
     private Integer cantidad;
-    private Double precioUnitario;
+    private Double precio;
     private String nombreProducto;
 
     // Métodos alias para compatibilidad con pedidoId / productoId
@@ -40,15 +40,15 @@ public class DetallePedido {
         this.idProducto = productoId;
     }
 
-    public BigDecimal getPrecioUnitarioBigDecimal() {
-        return precioUnitario != null ? BigDecimal.valueOf(precioUnitario) : null;
+    public BigDecimal getPrecioBigDecimal() {
+        return precio != null ? BigDecimal.valueOf(precio) : null;
     }
 
-    public void setPrecioUnitario(BigDecimal precio) {
-        this.precioUnitario = precio != null ? precio.doubleValue() : null;
+    public void setPrecio(BigDecimal precio) {
+        this.precio = precio != null ? precio.doubleValue() : null;
     }
 
-    public void setPrecioUnitario(Double precio) {
-        this.precioUnitario = precio;
+    public void setPrecio(Double precio) {
+        this.precio = precio;
     }
 }

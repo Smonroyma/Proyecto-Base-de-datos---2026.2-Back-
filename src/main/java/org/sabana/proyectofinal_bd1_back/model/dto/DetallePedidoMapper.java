@@ -16,7 +16,7 @@ public interface DetallePedidoMapper {
 
     @Mapping(target = "idPedido", ignore = true)
     @Mapping(target = "nombreProducto", ignore = true)
-    @Mapping(target = "precioUnitario", ignore = true)
+    @Mapping(target = "precio", ignore = true)
     DetallePedido toEntity(DetallePedidoRequestDTO dto);
 
     default DetallePedidoResponseDTO toResponseDTO(DetallePedido entity) {
@@ -28,7 +28,7 @@ public interface DetallePedidoMapper {
             compositeId = entity.getIdPedido() + "_" + entity.getIdProducto();
         }
 
-        Double precio = entity.getPrecioUnitario();
+        Double precio = entity.getPrecio();
         String nombreProd = entity.getNombreProducto();
 
         Double subtotalCalculado = 0.0;

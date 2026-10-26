@@ -12,7 +12,7 @@ import java.time.LocalTime;
 /**
  * Entidad de dominio Reserva.
  * POJO puro sin anotaciones de persistencia JPA.
- * Representa la tabla 'reserva'.
+ * Representa la tabla 'reserva' con clave compuesta unida de forma simple (idReserva_idCliente) sin clases adicionales.
  */
 @Data
 @Builder
@@ -20,6 +20,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class Reserva {
 
+    private String idReservaCompuesta;
     private Long idReserva;
     private LocalDate fecha;
     private LocalTime hora;
@@ -31,6 +32,21 @@ public class Reserva {
     private String nombreCliente;
     private String correoCliente;
     private Integer numeroMesa;
+
+    public void unirClaveCompuesta(Long idReserva, Long idCliente) {
+        this.idReserva = idReserva;
+        this.idCliente = idCliente;
+        if (idReserva != null && idCliente != null) {
+            this.idReservaCompuesta = idReserva + "_" + idCliente;
+        }
+    }
+
+    public String getIdReservaCompuesta() {
+        if (idReservaCompuesta == null && idReserva != null && idCliente != null) {
+            return idReserva + "_" + idCliente;
+        }
+        return idReservaCompuesta;
+    }
 
     public LocalDateTime getFechaHora() {
         if (fecha != null && hora != null) {

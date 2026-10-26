@@ -43,7 +43,7 @@ class DetallePedidoRepositoryImplTest {
                 .idProducto(10L)
                 .nombreProducto("Café Americano")
                 .cantidad(2)
-                .precioUnitario(6500.0)
+                .precio(6500.0)
                 .build();
     }
 

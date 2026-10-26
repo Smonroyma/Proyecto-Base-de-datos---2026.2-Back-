@@ -133,7 +133,11 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         Reserva reserva = reservaMapper.toEntity(requestDTO);
+        if (requestDTO.getIdReserva() != null) {
+            reserva.setIdReserva(requestDTO.getIdReserva());
+        }
         reserva.setIdCliente(cliente.getIdCliente());
+        reserva.unirClaveCompuesta(reserva.getIdReserva(), cliente.getIdCliente());
         reserva.setNumeroMesa(mesa.getNumeroMesa());
         reserva.setFecha(fechaHora.toLocalDate());
         reserva.setHora(fechaHora.toLocalTime());
@@ -144,6 +148,7 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         Reserva guardada = reservaRepository.save(reserva);
+        guardada.unirClaveCompuesta(guardada.getIdReserva(), cliente.getIdCliente());
         guardada.setNombreCliente(cliente.getNombreCompleto());
         guardada.setCorreoCliente(cliente.getCorreo());
         guardada.setNumeroMesa(mesa.getNumeroMesa());
@@ -198,8 +203,7 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         reservaMapper.updateEntityFromDTO(requestDTO, reservaExistente);
-        reservaExistente.setIdReserva(id);
-        reservaExistente.setIdCliente(cliente.getIdCliente());
+        reservaExistente.unirClaveCompuesta(id, cliente.getIdCliente());
         reservaExistente.setNumeroMesa(mesa.getNumeroMesa());
         reservaExistente.setFecha(fechaHora.toLocalDate());
         reservaExistente.setHora(fechaHora.toLocalTime());
@@ -208,6 +212,7 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         Reserva actualizada = reservaRepository.update(reservaExistente);
+        actualizada.unirClaveCompuesta(actualizada.getIdReserva(), cliente.getIdCliente());
         actualizada.setNombreCliente(cliente.getNombreCompleto());
         actualizada.setCorreoCliente(cliente.getCorreo());
         actualizada.setNumeroMesa(mesa.getNumeroMesa());

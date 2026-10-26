@@ -26,7 +26,7 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
             .idProducto(rs.getLong("id_producto"))
             .nombreProducto(rs.getString("nombre_producto"))
             .cantidad(rs.getInt("cantidad"))
-            .precioUnitario(rs.getObject("precio_unitario") != null ? rs.getDouble("precio_unitario") : 0.0)
+            .precio(rs.getObject("precio") != null ? rs.getDouble("precio") : 0.0)
             .build();
 
     public DetallePedidoRepositoryImpl(JdbcTemplate jdbcTemplate) {
@@ -64,7 +64,7 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
     public List<DetallePedido> findByPedidoId(Long idPedido) {
         String sql = """
                 SELECT d.id_pedido, d.id_producto, p.nombre AS nombre_producto,
-                       d.cantidad, p.precio AS precio_unitario
+                       d.cantidad, p.precio AS precio
                 FROM detalle_pedido d
                 INNER JOIN producto p ON d.id_producto = p.id_producto
                 WHERE d.id_pedido = ?
@@ -77,7 +77,7 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
     public Optional<DetallePedido> findByIdPedidoAndIdProducto(Long idPedido, Long idProducto) {
         String sql = """
                 SELECT d.id_pedido, d.id_producto, p.nombre AS nombre_producto,
-                       d.cantidad, p.precio AS precio_unitario
+                       d.cantidad, p.precio AS precio
                 FROM detalle_pedido d
                 INNER JOIN producto p ON d.id_producto = p.id_producto
                 WHERE d.id_pedido = ? AND d.id_producto = ?

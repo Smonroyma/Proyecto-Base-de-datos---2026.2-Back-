@@ -36,18 +36,23 @@ public class ReservaRepositoryImpl implements ReservaRepository {
             INNER JOIN mesa m ON r.numero_mesa = m.numero_mesa
             """;
 
-    private final RowMapper<Reserva> reservaRowMapper = (rs, rowNum) -> Reserva.builder()
-            .idReserva(rs.getLong("id_reserva"))
-            .idCliente(rs.getObject("id_cliente") != null ? rs.getLong("id_cliente") : null)
-            .nombreCliente(rs.getString("nombre_cliente") != null ? rs.getString("nombre_cliente").trim() : null)
-            .correoCliente(rs.getString("correo_cliente"))
-            .numeroMesa(rs.getObject("numero_mesa") != null ? rs.getInt("numero_mesa") : null)
-            .fecha(rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null)
-            .hora(rs.getTime("hora") != null ? rs.getTime("hora").toLocalTime() : null)
-            .numeroPersonas(rs.getObject("numero_personas") != null ? rs.getInt("numero_personas") : null)
-            .estado(rs.getString("estado"))
-            .observaciones(rs.getString("observaciones"))
-            .build();
+    private final RowMapper<Reserva> reservaRowMapper = (rs, rowNum) -> {
+        Long idReserva = rs.getLong("id_reserva");
+        Long idCliente = rs.getObject("id_cliente") != null ? rs.getLong("id_cliente") : null;
+        return Reserva.builder()
+                .idReservaCompuesta(idReserva != null && idCliente != null ? idReserva + "_" + idCliente : null)
+                .idReserva(idReserva)
+                .idCliente(idCliente)
+                .nombreCliente(rs.getString("nombre_cliente") != null ? rs.getString("nombre_cliente").trim() : null)
+                .correoCliente(rs.getString("correo_cliente"))
+                .numeroMesa(rs.getObject("numero_mesa") != null ? rs.getInt("numero_mesa") : null)
+                .fecha(rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null)
+                .hora(rs.getTime("hora") != null ? rs.getTime("hora").toLocalTime() : null)
+                .numeroPersonas(rs.getObject("numero_personas") != null ? rs.getInt("numero_personas") : null)
+                .estado(rs.getString("estado"))
+                .observaciones(rs.getString("observaciones"))
+                .build();
+    };
 
     private final RowMapper<Mesa> mesaRowMapper = (rs, rowNum) -> Mesa.builder()
             .numeroMesa(rs.getInt("numero_mesa"))
@@ -159,6 +164,7 @@ public class ReservaRepositoryImpl implements ReservaRepository {
         if (generatedKey != null) {
             reserva.setIdReserva(generatedKey.longValue());
         }
+        reserva.unirClaveCompuesta(reserva.getIdReserva(), reserva.getIdCliente());
         reserva.setFecha(fecha);
         reserva.setHora(hora);
         reserva.setEstado(estadoUpper);

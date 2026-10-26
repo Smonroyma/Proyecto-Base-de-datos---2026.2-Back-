@@ -19,11 +19,11 @@
 
 - **Persistencia 100% en SQL Nativo Puro (`JdbcTemplate`):** Cumplimiento estricto de cero uso de ORMs (prohibición total de JPA/Hibernate). Todas las operaciones CRUD, `JOIN`s jerárquicos, agregaciones analíticas e inserciones por lote (`batchUpdate`) se ejecutan mediante sentencias SQL nativas optimizadas.
 - **Seguridad Stateless con JWT y 2FA (OTP en Memoria):** Autenticación basada en tokens firmados con HMAC-SHA256 (`jjwt`) y verificación en dos pasos (2FA) gestionada mediante una estructura concurrente thread-safe (`ConcurrentHashMap`) con vigencia de 5 minutos, sin contaminar la base de datos con códigos temporales.
-- **Jerarquía de Personal (`Staff`) y Matriz Estricta de Roles:** Separación relacional 1:1 entre `STAFF`, `ADMINISTRADOR` y `EMPLEADO` con control de acceso granular en `SecurityConfig`:
-  - **Público (`Cliente`):** Consulta de menú (`GET /api/productos`, `GET /api/categorias`), verificación de disponibilidad de mesas (`GET /api/reservas/disponibles`), creación de reservas (`POST /api/reservas`) con persistencia permanente del cliente y consulta de reservas históricas mediante su correo único (`GET /api/reservas/correo/{correo}`).
-  - **`ROLE_ADMINISTRADOR`:** Gestión CRUD de empleados (`Staff`), administración del catálogo (categorías y productos), control de mesas, eliminación explícita controlada de clientes (`DELETE /api/clientes/{id}`) y auditoría operativa/financiera en el dashboard (`GET /api/dashboard/resumen`). Tiene estrictamente prohibido (`403 Forbidden`) tomar pedidos o procesar pagos.
-  - **`ROLE_EMPLEADO`:** Operación exclusiva de salón. Registra comandas en mesa (`POST /api/pedidos`), controla la máquina de estados unidireccional del pedido (`PENDIENTE` ➔ `EN_PREPARACION` ➔ `ENTREGADO` ➔ `PAGADO`), habilita/ocupa mesas y procesa cobros (`POST /api/pagos`). Tiene prohibido gestionar personal o modificar el catálogo.
-- **Comandas en Salón y Control Atómico de Inventario:** Validación en tiempo real de disponibilidad y existencias por producto, descuento atómico de stock y congelamiento de precios unitarios en `detalle_pedido_contener` para garantizar integridad contable histórica.
+- **Jerarquía de Personal (`Staff`) y Matriz Estricta de Roles:** Separación relacional 1:1 entre `STAFF`, `ADMINISTRADOR` y `MESERO` con control de acceso granular en `SecurityConfig`:
+  - **Público (`Cliente`):** Consulta de menú (`GET /api/productos`, `GET /api/categorias`), verificación de disponibilidad de mesas (`GET /api/reservas/disponibles`), creación de reservas (`POST /api/reservas`) con persistencia permanente del cliente (enviando por separado los datos del DTO y uniendo la clave compuesta en el backend) y consulta de reservas históricas mediante su correo único (`GET /api/reservas/correo/{correo}`).
+  - **`ROLE_ADMINISTRADOR`:** Gestión CRUD de meseros (`Staff` / `Mesero`), administración del catálogo (categorías y productos), control de mesas, eliminación explícita controlada de clientes (`DELETE /api/clientes/{id}`) y auditoría operativa/financiera en el dashboard (`GET /api/dashboard/resumen`). Tiene estrictamente prohibido (`403 Forbidden`) tomar pedidos o procesar pagos.
+  - **`ROLE_MESERO`:** Operación exclusiva de salón. Registra comandas en mesa (`POST /api/pedidos`), controla la máquina de estados unidireccional del pedido (`PENDIENTE` ➔ `EN_PREPARACION` ➔ `ENTREGADO` ➔ `PAGADO`), habilita/ocupa mesas y procesa cobros (`POST /api/pagos`). Tiene prohibido gestionar personal o modificar el catálogo.
+- **Comandas en Salón y Control Atómico de Inventario:** Validación en tiempo real de disponibilidad y existencias por producto, agrupación de ítems repetidos, descuento atómico de stock, manejo de `precio` en `DetallePedido` y cálculo dinámico del `subtotal` (no persistido en la entidad/BD, pero enviado al frontend en el DTO).
 - **Motor Transaccional `Pago ➔ Factura` con IVA del 19%:** Al procesar el pago (`POST /api/pagos`), el sistema soporta pagos simples o mixtos (`EFECTIVO`, `TARJETA`, `TRANSFERENCIA`), calcula automáticamente el impuesto del **19% de IVA** sobre el subtotal del pedido (`total = subtotal + impuesto + propina`), verifica el cuadre exacto de caja, emite la factura con consecutivo `FAC-YYYY-XXXXX`, marca el pedido como `PAGADO` y libera la mesa a estado `DISPONIBLE`.
 - **Notificaciones Transaccionales Asíncronas (`@Async`):** Envío no bloqueante de correos electrónicos con plantillas HTML corporativas para códigos OTP 2FA, bienvenida/baja de personal, confirmación/cancelación de reservas y comprobantes de facturación electrónica.
 
@@ -168,8 +168,8 @@ Una vez que el servidor esté en ejecución sobre el puerto `8080`, puedes explo
 
 | Rol | Correo Electrónico | Contraseña | Permisos Principales |
 | :--- | :--- | :--- | :--- |
-| **`ROLE_ADMINISTRADOR`** | `admin@savanacoffee.com` | `Password123` | Gestión de Staff, Catálogo, Mesas, Clientes y Dashboard. |
-| **`ROLE_EMPLEADO`** | `empleado@savanacoffee.com` | `Password123` | Toma de Pedidos en Mesa, Cambio de Estados y Procesamiento de Pagos/Facturas. |
+| **`ROLE_ADMINISTRADOR`** | `admin@savanacoffee.com` | `Password123` | Gestión de Staff/Meseros, Catálogo, Mesas, Clientes y Dashboard. |
+| **`ROLE_MESERO`** | `mesero@savanacoffee.com` | `Password123` | Toma de Pedidos en Mesa, Cambio de Estados y Procesamiento de Pagos/Facturas. |
 
 Para autenticar tus peticiones en Swagger UI:
 1. Ejecuta `POST /api/auth/login` con cualquiera de las cuentas anteriores.

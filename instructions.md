@@ -30,7 +30,7 @@ Accept: application/json
 
 ### 2.1. Clientes (Público — Sin Cuenta ni Contraseña)
 - **Regla de Negocio:** Los clientes (comensales) **NO tienen cuenta de usuario, NO tienen contraseña y NO usan JWT**.
-- El cliente interactúa libremente con el menú público y con el módulo de reservas ingresando únicamente sus datos básicos (`nombres`, `apellidos`, `correo`, `telefono`).
+- El cliente interactúa libremente con el menú público y con el módulo de reservas ingresando únicamente sus datos básicos (`nombre`, `apellido`, `correo`, `telefono`).
 - Su **`correo` electrónico es único** y actúa como su identificador natural:
   - Si un cliente reserva por primera vez, el backend lo registra y lo **guarda permanentemente** en la tabla `cliente`.
   - Si el correo ya existe en la base de datos, el backend reutiliza automáticamente su `idCliente`.
@@ -41,9 +41,9 @@ Al levantar el backend, la base de datos ya cuenta con los siguientes usuarios d
 
 | Rol en Sistema | Correo (`correo`) | Contraseña (`contrasena`) | 2FA (`dosFacHab`) | Uso Principal |
 | :--- | :--- | :--- | :--- | :--- |
-| **`ADMINISTRADOR`** | `admin@savanacoffee.com` | `Password123` | `false` (Login directo) | Gestión de empleados, catálogo, mesas, clientes y dashboard de KPIs. |
-| **`EMPLEADO`** (Mesero) | `empleado@savanacoffee.com` | `Password123` | `false` (Login directo) | Toma de pedidos en salón, cambio de estados de comanda y cobro/facturación. |
-| **`EMPLEADO`** (Mesera) | `luisa@savanacoffee.com` | `Password123` | `false` (Login directo) | Cuenta secundaria operativa de salón. |
+| **`ADMINISTRADOR`** | `admin@savanacoffee.com` | `Password123` | `false` (Login directo) | Gestión de meseros, catálogo, mesas, clientes y dashboard de KPIs. |
+| **`MESERO`** | `mesero@savanacoffee.com` | `Password123` | `false` (Login directo) | Toma de pedidos en salón, cambio de estados de comanda y cobro/facturación. |
+| **`MESERO`** | `luisa@savanacoffee.com` | `Password123` | `false` (Login directo) | Cuenta secundaria operativa de salón. |
 
 ### 2.3. Flujo de Login del Staff (`ADMINISTRADOR` y `EMPLEADO`) y Doble Factor (2FA)
 
@@ -186,7 +186,7 @@ El proceso de inicio de sesión para el personal (`POST /api/auth/login`) soport
 
 ### 4.2. Flujo de Pedidos (100% en Salón y Máquina de Estados Unidireccional)
 1. **Prohibidos los pedidos para llevar:** Todo pedido exige obligatoriamente seleccionar una mesa (`numeroMesa`) y un cliente (`idCliente`).
-2. **Descuento automático de stock y `subtotal`:** Al crear el pedido (`POST /api/pedidos`), el backend verifica que cada producto tenga `disponibilidad = true` y `stock >= cantidad`, descuenta el inventario de inmediato, congela el precio unitario y calcula el **`subtotal`** del pedido (antes de IVA). Además, cambia automáticamente la mesa a estado `OCUPADA`.
+2. **Descuento automático de stock y `subtotal` calculado en DTO:** Al crear el pedido (`POST /api/pedidos`), el backend verifica que cada producto tenga `disponibilidad = true` y `stock >= cantidad`, descuenta el inventario de inmediato, asigna `precio` en la entidad `DetallePedido` y calcula dinámicamente el **`subtotal`** del pedido (el cual no se guarda en la entidad `Pedido` ni en la base de datos, pero se mantiene en `PedidoResponseDTO` y `DetallePedidoResponseDTO` para enviarlo al Front-end). Además, cambia automáticamente la mesa a estado `OCUPADA`.
 3. **Máquina de Estados Estrictamente Unidireccional (`PATCH /api/pedidos/{id}/estado`):**
    El Front-end solo debe permitir avanzar el estado hacia adelante siguiendo este orden:
    - `PENDIENTE` ➔ puede pasar a `EN_PREPARACION` (o `CANCELADO`).
@@ -291,13 +291,15 @@ GET /api/reservas/disponibles?fechaHora=2026-10-25T19:30:00&numeroPersonas=4
 ```
 
 #### Crear una Reserva (`POST /api/reservas` — Público)
-El Front-end puede enviar `fecha` (`YYYY-MM-DD`) y `hora` (`HH:mm:ss`), o bien `fechaHora` (`YYYY-MM-DDTHH:mm:ss`). Si el correo del cliente no existe, se crea automáticamente en `cliente`; si ya existe, se reutiliza:
+El Front-end puede enviar `idReserva` e `idCliente` por separado en el DTO (o los datos del cliente `nombre`, `apellido`, `correo`, `telefono`), junto con `fecha` (`YYYY-MM-DD`) y `hora` (`HH:mm:ss`), o bien `fechaHora` (`YYYY-MM-DDTHH:mm:ss`). El backend une directamente ambos identificadores al crear el registro para guardarlos como una sola clave compuesta simple (`idReservaCompuesta` en formato `idReserva_idCliente`) en la entidad `Reserva`, sin crear clases adicionales:
 
 **Request:**
 ```json
 {
-  "nombres": "Andrés",
-  "apellidos": "Silva",
+  "idReserva": 1,
+  "idCliente": 3,
+  "nombre": "Andrés",
+  "apellido": "Silva",
   "correo": "andres.silva@gmail.com",
   "telefono": "3001112233",
   "numeroMesa": 2,
@@ -310,6 +312,7 @@ El Front-end puede enviar `fecha` (`YYYY-MM-DD`) y `hora` (`HH:mm:ss`), o bien `
 **Response (`201 Created`):**
 ```json
 {
+  "idReservaCompuesta": "1_3",
   "idReserva": 1,
   "idCliente": 3,
   "nombreCliente": "Andrés Silva",

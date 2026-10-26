@@ -140,7 +140,7 @@ public class PedidoServiceImpl implements PedidoService {
             producto.setStock(nuevoStock);
 
             detalle.setNombreProducto(producto.getNombre());
-            detalle.setPrecioUnitario(producto.getPrecio());
+            detalle.setPrecio(producto.getPrecio());
         }
 
         Pedido pedido = Pedido.builder()

@@ -24,7 +24,7 @@ public final class SubtotalCalculator {
         if (detalle == null || detalle.getCantidad() == null) {
             return 0.0;
         }
-        Double precio = detalle.getPrecioUnitario();
+        Double precio = detalle.getPrecio();
         if (precio == null) {
             return 0.0;
         }
