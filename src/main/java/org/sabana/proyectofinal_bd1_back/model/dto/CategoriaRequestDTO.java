@@ -31,6 +31,7 @@ public class CategoriaRequestDTO {
     @Schema(description = "Estado de la categoría en el catálogo", example = "ACTIVA", allowableValues = {"ACTIVA", "INACTIVA"})
     private String estado;
 
+    @NotBlank(message = "La descripción de la categoría es obligatoria")
     @Size(max = 255, message = "La descripción no puede superar los 255 caracteres")
     @Schema(description = "Descripción detallada del tipo de productos de la categoría", example = "Cafés espresso, lattes, infusiones y tés calientes")
     private String descripcion;

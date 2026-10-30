@@ -26,16 +26,16 @@ public class PedidoRepositoryImpl implements PedidoRepository {
     private final DetallePedidoRepository detallePedidoRepository;
 
     private static final String BASE_SELECT = """
-            SELECT p.id_pedido, p.id_cliente,
+            SELECT p.id_pedido, p.cliente_id_cliente AS id_cliente,
                    CONCAT(c.nombre, ' ', c.apellido) AS nombre_cliente,
-                   p.numero_mesa,
-                   p.id_usuario,
+                   p.mesa_num_mesa AS numero_mesa,
+                   p.staff_id_usuario AS id_usuario,
                    CONCAT(s.nombres, ' ', s.apellidos) AS nombre_usuario,
                    p.fecha, p.estado, p.observaciones
             FROM pedido p
-            INNER JOIN cliente c ON p.id_cliente = c.id_cliente
-            INNER JOIN mesa m ON p.numero_mesa = m.numero_mesa
-            INNER JOIN staff s ON p.id_usuario = s.id_usuario
+            INNER JOIN cliente c ON p.cliente_id_cliente = c.id_cliente
+            INNER JOIN mesa m ON p.mesa_num_mesa = m.num_mesa
+            INNER JOIN staff s ON p.staff_id_usuario = s.id_usuario
             """;
 
     private final RowMapper<Pedido> pedidoRowMapper = (rs, rowNum) -> Pedido.builder()
@@ -81,7 +81,7 @@ public class PedidoRepositoryImpl implements PedidoRepository {
 
     @Override
     public List<Pedido> findByCliente(Long idCliente) {
-        String sql = BASE_SELECT + " WHERE p.id_cliente = ? ORDER BY p.fecha DESC, p.id_pedido DESC";
+        String sql = BASE_SELECT + " WHERE p.cliente_id_cliente = ? ORDER BY p.fecha DESC, p.id_pedido DESC";
         List<Pedido> pedidos = jdbcTemplate.query(sql, pedidoRowMapper, idCliente);
         cargarDetallesEnLista(pedidos);
         return pedidos;
@@ -89,7 +89,7 @@ public class PedidoRepositoryImpl implements PedidoRepository {
 
     @Override
     public List<Pedido> findByMesa(Integer numeroMesa) {
-        String sql = BASE_SELECT + " WHERE p.numero_mesa = ? ORDER BY p.fecha DESC, p.id_pedido DESC";
+        String sql = BASE_SELECT + " WHERE p.mesa_num_mesa = ? ORDER BY p.fecha DESC, p.id_pedido DESC";
         List<Pedido> pedidos = jdbcTemplate.query(sql, pedidoRowMapper, numeroMesa);
         cargarDetallesEnLista(pedidos);
         return pedidos;
@@ -97,7 +97,7 @@ public class PedidoRepositoryImpl implements PedidoRepository {
 
     @Override
     public List<Pedido> findByUsuario(Long idUsuario) {
-        String sql = BASE_SELECT + " WHERE p.id_usuario = ? ORDER BY p.fecha DESC, p.id_pedido DESC";
+        String sql = BASE_SELECT + " WHERE p.staff_id_usuario = ? ORDER BY p.fecha DESC, p.id_pedido DESC";
         List<Pedido> pedidos = jdbcTemplate.query(sql, pedidoRowMapper, idUsuario);
         cargarDetallesEnLista(pedidos);
         return pedidos;
@@ -114,7 +114,7 @@ public class PedidoRepositoryImpl implements PedidoRepository {
     @Override
     public Pedido save(Pedido pedido) {
         String sql = """
-                INSERT INTO pedido (id_cliente, numero_mesa, id_usuario, fecha, estado, observaciones)
+                INSERT INTO pedido (cliente_id_cliente, mesa_num_mesa, staff_id_usuario, fecha, estado, observaciones)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
         KeyHolder keyHolder = new GeneratedKeyHolder();

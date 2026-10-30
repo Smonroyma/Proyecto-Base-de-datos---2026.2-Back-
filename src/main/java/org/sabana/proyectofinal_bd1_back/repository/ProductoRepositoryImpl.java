@@ -22,9 +22,9 @@ public class ProductoRepositoryImpl implements ProductoRepository {
 
     private static final String BASE_SELECT = """
             SELECT p.id_producto, p.nombre, p.descripcion, p.precio, p.disponibilidad,
-                   p.stock, p.imagen_url, p.nombre_categoria
+                   p.stock, p.imagen_url, p.categoria_nombre_categoria AS nombre_categoria
             FROM producto p
-            INNER JOIN categoria c ON p.nombre_categoria = c.nombre_categoria
+            INNER JOIN categoria c ON p.categoria_nombre_categoria = c.nombre_categoria
             """;
 
     private final RowMapper<Producto> productoRowMapper = (rs, rowNum) -> Producto.builder()
@@ -61,7 +61,7 @@ public class ProductoRepositoryImpl implements ProductoRepository {
 
     @Override
     public List<Producto> findByCategoria(String nombreCategoria) {
-        String sql = BASE_SELECT + " WHERE LOWER(TRIM(p.nombre_categoria)) = LOWER(TRIM(?)) ORDER BY p.id_producto ASC";
+        String sql = BASE_SELECT + " WHERE LOWER(TRIM(p.categoria_nombre_categoria)) = LOWER(TRIM(?)) ORDER BY p.id_producto ASC";
         return jdbcTemplate.query(sql, productoRowMapper, nombreCategoria);
     }
 
@@ -73,14 +73,14 @@ public class ProductoRepositoryImpl implements ProductoRepository {
 
     @Override
     public List<Producto> findByCategoriaAndDisponibilidad(String nombreCategoria, Boolean disponibilidad) {
-        String sql = BASE_SELECT + " WHERE LOWER(TRIM(p.nombre_categoria)) = LOWER(TRIM(?)) AND p.disponibilidad = ? ORDER BY p.id_producto ASC";
+        String sql = BASE_SELECT + " WHERE LOWER(TRIM(p.categoria_nombre_categoria)) = LOWER(TRIM(?)) AND p.disponibilidad = ? ORDER BY p.id_producto ASC";
         return jdbcTemplate.query(sql, productoRowMapper, nombreCategoria, disponibilidad);
     }
 
     @Override
     public Producto save(Producto producto) {
         String sql = """
-                INSERT INTO producto (nombre, descripcion, precio, disponibilidad, stock, imagen_url, nombre_categoria)
+                INSERT INTO producto (nombre, descripcion, precio, disponibilidad, stock, imagen_url, categoria_nombre_categoria)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -108,7 +108,7 @@ public class ProductoRepositoryImpl implements ProductoRepository {
     public Producto update(Producto producto) {
         String sql = """
                 UPDATE producto
-                SET nombre = ?, descripcion = ?, precio = ?, disponibilidad = ?, stock = ?, imagen_url = ?, nombre_categoria = ?
+                SET nombre = ?, descripcion = ?, precio = ?, disponibilidad = ?, stock = ?, imagen_url = ?, categoria_nombre_categoria = ?
                 WHERE id_producto = ?
                 """;
         jdbcTemplate.update(

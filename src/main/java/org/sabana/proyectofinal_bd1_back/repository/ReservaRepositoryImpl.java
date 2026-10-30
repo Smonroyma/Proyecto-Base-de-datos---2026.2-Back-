@@ -24,16 +24,18 @@ import java.util.Optional;
 @Repository
 public class ReservaRepositoryImpl implements ReservaRepository {
 
+    public static final int DURACION_BLOQUEO_RESERVA_HORAS = 3;
+
     private final JdbcTemplate jdbcTemplate;
 
     private static final String BASE_SELECT = """
-            SELECT r.id_reserva, r.id_cliente,
+            SELECT r.id_reserva, r.cliente_id_cliente AS id_cliente,
                    CONCAT(c.nombre, ' ', c.apellido) AS nombre_cliente,
-                   c.correo AS correo_cliente,
-                   r.numero_mesa, r.fecha, r.hora, r.numero_personas, r.estado, r.observaciones
+                   (SELECT cc.correo FROM cliente_correo cc WHERE cc.cliente_id_cliente = c.id_cliente ORDER BY cc.correo LIMIT 1) AS correo_cliente,
+                   r.mesa_num_mesa AS numero_mesa, r.fecha, r.hora, r.num_personas AS numero_personas, r.estado
             FROM reserva r
-            INNER JOIN cliente c ON r.id_cliente = c.id_cliente
-            INNER JOIN mesa m ON r.numero_mesa = m.numero_mesa
+            INNER JOIN cliente c ON r.cliente_id_cliente = c.id_cliente
+            INNER JOIN mesa m ON r.mesa_num_mesa = m.num_mesa
             """;
 
     private final RowMapper<Reserva> reservaRowMapper = (rs, rowNum) -> {
@@ -50,12 +52,11 @@ public class ReservaRepositoryImpl implements ReservaRepository {
                 .hora(rs.getTime("hora") != null ? rs.getTime("hora").toLocalTime() : null)
                 .numeroPersonas(rs.getObject("numero_personas") != null ? rs.getInt("numero_personas") : null)
                 .estado(rs.getString("estado"))
-                .observaciones(rs.getString("observaciones"))
                 .build();
     };
 
     private final RowMapper<Mesa> mesaRowMapper = (rs, rowNum) -> Mesa.builder()
-            .numeroMesa(rs.getInt("numero_mesa"))
+            .numeroMesa(rs.getInt("num_mesa"))
             .capacidad(rs.getInt("capacidad"))
             .estado(rs.getString("estado"))
             .build();
@@ -83,19 +84,19 @@ public class ReservaRepositoryImpl implements ReservaRepository {
 
     @Override
     public List<Reserva> findByCliente(Long idCliente) {
-        String sql = BASE_SELECT + " WHERE r.id_cliente = ? ORDER BY r.fecha DESC, r.hora DESC";
+        String sql = BASE_SELECT + " WHERE r.cliente_id_cliente = ? ORDER BY r.fecha DESC, r.hora DESC";
         return jdbcTemplate.query(sql, reservaRowMapper, idCliente);
     }
 
     @Override
     public List<Reserva> findByClienteCorreo(String correo) {
-        String sql = BASE_SELECT + " WHERE LOWER(TRIM(c.correo)) = LOWER(TRIM(?)) ORDER BY r.fecha DESC, r.hora DESC";
+        String sql = BASE_SELECT + " WHERE EXISTS (SELECT 1 FROM cliente_correo cc WHERE cc.cliente_id_cliente = c.id_cliente AND LOWER(TRIM(cc.correo)) = LOWER(TRIM(?))) ORDER BY r.fecha DESC, r.hora DESC";
         return jdbcTemplate.query(sql, reservaRowMapper, correo);
     }
 
     @Override
     public List<Reserva> findByMesa(Integer numeroMesa) {
-        String sql = BASE_SELECT + " WHERE r.numero_mesa = ? ORDER BY r.fecha DESC, r.hora DESC";
+        String sql = BASE_SELECT + " WHERE r.mesa_num_mesa = ? ORDER BY r.fecha DESC, r.hora DESC";
         return jdbcTemplate.query(sql, reservaRowMapper, numeroMesa);
     }
 
@@ -109,22 +110,27 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     public List<Mesa> findMesasDisponibles(LocalDateTime fechaHora, Integer capacidadRequerida) {
         LocalDate fecha = fechaHora.toLocalDate();
         LocalTime hora = fechaHora.toLocalTime();
-        LocalTime windowStart = hora.isBefore(LocalTime.of(2, 0)) ? LocalTime.MIN : hora.minusHours(2).plusMinutes(1);
-        LocalTime windowEnd = hora.isAfter(LocalTime.of(21, 59)) ? LocalTime.MAX : hora.plusHours(2).minusMinutes(1);
+        // Bloqueo de 3 horas (INTERVAL '3 hours') alineado con ex_reserva_sin_cruces en PostgreSQL
+        LocalTime windowStart = hora.isBefore(LocalTime.of(DURACION_BLOQUEO_RESERVA_HORAS, 0))
+                ? LocalTime.MIN
+                : hora.minusHours(DURACION_BLOQUEO_RESERVA_HORAS).plusMinutes(1);
+        LocalTime windowEnd = hora.isAfter(LocalTime.of(24 - DURACION_BLOQUEO_RESERVA_HORAS, 59))
+                ? LocalTime.MAX
+                : hora.plusHours(DURACION_BLOQUEO_RESERVA_HORAS).minusMinutes(1);
 
         String sql = """
-                SELECT m.numero_mesa, m.capacidad, m.estado
+                SELECT m.num_mesa, m.capacidad, m.estado
                 FROM mesa m
                 WHERE m.capacidad >= ?
                   AND UPPER(m.estado) <> 'EN_MANTENIMIENTO'
-                  AND m.numero_mesa NOT IN (
-                      SELECT r.numero_mesa
+                  AND m.num_mesa NOT IN (
+                      SELECT r.mesa_num_mesa
                       FROM reserva r
                       WHERE UPPER(r.estado) IN ('PENDIENTE', 'CONFIRMADA')
                         AND r.fecha = ?
                         AND r.hora BETWEEN ? AND ?
                   )
-                ORDER BY m.capacidad ASC, m.numero_mesa ASC
+                ORDER BY m.capacidad ASC, m.num_mesa ASC
                 """;
 
         return jdbcTemplate.query(
@@ -140,8 +146,8 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     @Override
     public Reserva save(Reserva reserva) {
         String sql = """
-                INSERT INTO reserva (id_cliente, numero_mesa, fecha, hora, numero_personas, estado, observaciones)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO reserva (cliente_id_cliente, mesa_num_mesa, fecha, hora, num_personas, estado)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
         LocalDate fecha = reserva.getFecha() != null ? reserva.getFecha() : LocalDate.now();
@@ -156,7 +162,6 @@ public class ReservaRepositoryImpl implements ReservaRepository {
             ps.setTime(4, Time.valueOf(hora));
             ps.setInt(5, reserva.getNumeroPersonas());
             ps.setString(6, estadoUpper);
-            ps.setString(7, reserva.getObservaciones());
             return ps;
         }, keyHolder);
 
@@ -175,7 +180,7 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     public Reserva update(Reserva reserva) {
         String sql = """
                 UPDATE reserva
-                SET id_cliente = ?, numero_mesa = ?, fecha = ?, hora = ?, numero_personas = ?, estado = ?, observaciones = ?
+                SET cliente_id_cliente = ?, mesa_num_mesa = ?, fecha = ?, hora = ?, num_personas = ?, estado = ?
                 WHERE id_reserva = ?
                 """;
         LocalDate fecha = reserva.getFecha() != null ? reserva.getFecha() : LocalDate.now();
@@ -190,7 +195,6 @@ public class ReservaRepositoryImpl implements ReservaRepository {
                 Time.valueOf(hora),
                 reserva.getNumeroPersonas(),
                 estadoUpper,
-                reserva.getObservaciones(),
                 reserva.getIdReserva()
         );
         reserva.setFecha(fecha);
@@ -210,15 +214,20 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     public boolean existsOverlappingReserva(Integer numeroMesa, LocalDateTime fechaHora, Long excludeReservaId) {
         LocalDate fecha = fechaHora.toLocalDate();
         LocalTime hora = fechaHora.toLocalTime();
-        LocalTime windowStart = hora.isBefore(LocalTime.of(2, 0)) ? LocalTime.MIN : hora.minusHours(2).plusMinutes(1);
-        LocalTime windowEnd = hora.isAfter(LocalTime.of(21, 59)) ? LocalTime.MAX : hora.plusHours(2).minusMinutes(1);
+        // Bloqueo de 3 horas (INTERVAL '3 hours') alineado con ex_reserva_sin_cruces en PostgreSQL
+        LocalTime windowStart = hora.isBefore(LocalTime.of(DURACION_BLOQUEO_RESERVA_HORAS, 0))
+                ? LocalTime.MIN
+                : hora.minusHours(DURACION_BLOQUEO_RESERVA_HORAS).plusMinutes(1);
+        LocalTime windowEnd = hora.isAfter(LocalTime.of(24 - DURACION_BLOQUEO_RESERVA_HORAS, 59))
+                ? LocalTime.MAX
+                : hora.plusHours(DURACION_BLOQUEO_RESERVA_HORAS).minusMinutes(1);
 
         String sql;
         Integer count;
         if (excludeReservaId == null) {
             sql = """
                     SELECT COUNT(*) FROM reserva
-                    WHERE numero_mesa = ?
+                    WHERE mesa_num_mesa = ?
                       AND UPPER(estado) IN ('PENDIENTE', 'CONFIRMADA')
                       AND fecha = ?
                       AND hora BETWEEN ? AND ?
@@ -234,7 +243,7 @@ public class ReservaRepositoryImpl implements ReservaRepository {
         } else {
             sql = """
                     SELECT COUNT(*) FROM reserva
-                    WHERE numero_mesa = ?
+                    WHERE mesa_num_mesa = ?
                       AND UPPER(estado) IN ('PENDIENTE', 'CONFIRMADA')
                       AND fecha = ?
                       AND hora BETWEEN ? AND ?

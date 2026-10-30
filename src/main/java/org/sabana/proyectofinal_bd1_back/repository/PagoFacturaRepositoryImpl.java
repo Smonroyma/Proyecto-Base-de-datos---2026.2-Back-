@@ -23,10 +23,10 @@ public class PagoFacturaRepositoryImpl implements PagoFacturaRepository {
     private final JdbcTemplate jdbcTemplate;
 
     private static final String BASE_SELECT = """
-            SELECT p.id_pago, p.num_factura, p.tipo_metodo_pago,
+            SELECT p.id_pago, p.factura_num_factura AS num_factura, p.metodo_pago_tipo AS tipo_metodo_pago,
                    p.fecha, p.estado, p.monto
             FROM pago p
-            INNER JOIN metodo_pago mp ON p.tipo_metodo_pago = mp.tipo
+            INNER JOIN metodo_pago mp ON p.metodo_pago_tipo = mp.tipo
             """;
 
     private final RowMapper<Pago> pagoRowMapper = (rs, rowNum) -> {
@@ -58,7 +58,7 @@ public class PagoFacturaRepositoryImpl implements PagoFacturaRepository {
         }
 
         String sql = """
-                INSERT INTO pago (num_factura, tipo_metodo_pago, fecha, estado, monto)
+                INSERT INTO pago (factura_num_factura, metodo_pago_tipo, fecha, estado, monto)
                 VALUES (?, ?, ?, ?, ?)
                 """;
 
@@ -84,7 +84,7 @@ public class PagoFacturaRepositoryImpl implements PagoFacturaRepository {
 
     @Override
     public List<Pago> findByNumFactura(String numFactura) {
-        String sql = BASE_SELECT + " WHERE UPPER(TRIM(p.num_factura)) = UPPER(TRIM(?)) ORDER BY p.id_pago ASC";
+        String sql = BASE_SELECT + " WHERE UPPER(TRIM(p.factura_num_factura)) = UPPER(TRIM(?)) ORDER BY p.id_pago ASC";
         return jdbcTemplate.query(sql, pagoRowMapper, numFactura);
     }
 

@@ -40,8 +40,8 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
         }
 
         String sql = """
-                INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad)
-                VALUES (?, ?, ?)
+                INSERT INTO detalle_pedido (pedido_id_pedido, producto_id_producto, cantidad, precio)
+                VALUES (?, ?, ?, ?)
                 """;
 
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -51,6 +51,7 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
                 ps.setLong(1, detalle.getIdPedido());
                 ps.setLong(2, detalle.getIdProducto());
                 ps.setInt(3, detalle.getCantidad());
+                ps.setDouble(4, detalle.getPrecio() != null ? detalle.getPrecio() : 0.0);
             }
 
             @Override
@@ -63,12 +64,12 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
     @Override
     public List<DetallePedido> findByPedidoId(Long idPedido) {
         String sql = """
-                SELECT d.id_pedido, d.id_producto, p.nombre AS nombre_producto,
-                       d.cantidad, p.precio AS precio
+                SELECT d.pedido_id_pedido AS id_pedido, d.producto_id_producto AS id_producto, p.nombre AS nombre_producto,
+                       d.cantidad, COALESCE(d.precio, p.precio) AS precio
                 FROM detalle_pedido d
-                INNER JOIN producto p ON d.id_producto = p.id_producto
-                WHERE d.id_pedido = ?
-                ORDER BY d.id_producto ASC
+                INNER JOIN producto p ON d.producto_id_producto = p.id_producto
+                WHERE d.pedido_id_pedido = ?
+                ORDER BY d.producto_id_producto ASC
                 """;
         return jdbcTemplate.query(sql, detalleRowMapper, idPedido);
     }
@@ -76,11 +77,11 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
     @Override
     public Optional<DetallePedido> findByIdPedidoAndIdProducto(Long idPedido, Long idProducto) {
         String sql = """
-                SELECT d.id_pedido, d.id_producto, p.nombre AS nombre_producto,
-                       d.cantidad, p.precio AS precio
+                SELECT d.pedido_id_pedido AS id_pedido, d.producto_id_producto AS id_producto, p.nombre AS nombre_producto,
+                       d.cantidad, COALESCE(d.precio, p.precio) AS precio
                 FROM detalle_pedido d
-                INNER JOIN producto p ON d.id_producto = p.id_producto
-                WHERE d.id_pedido = ? AND d.id_producto = ?
+                INNER JOIN producto p ON d.producto_id_producto = p.id_producto
+                WHERE d.pedido_id_pedido = ? AND d.producto_id_producto = ?
                 """;
         try {
             DetallePedido detalle = jdbcTemplate.queryForObject(sql, detalleRowMapper, idPedido, idProducto);
@@ -92,21 +93,21 @@ public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
 
     @Override
     public boolean updateCantidad(Long idPedido, Long idProducto, int cantidad) {
-        String sql = "UPDATE detalle_pedido SET cantidad = ? WHERE id_pedido = ? AND id_producto = ?";
+        String sql = "UPDATE detalle_pedido SET cantidad = ? WHERE pedido_id_pedido = ? AND producto_id_producto = ?";
         int rowsAffected = jdbcTemplate.update(sql, cantidad, idPedido, idProducto);
         return rowsAffected > 0;
     }
 
     @Override
     public boolean deleteByIdPedidoAndIdProducto(Long idPedido, Long idProducto) {
-        String sql = "DELETE FROM detalle_pedido WHERE id_pedido = ? AND id_producto = ?";
+        String sql = "DELETE FROM detalle_pedido WHERE pedido_id_pedido = ? AND producto_id_producto = ?";
         int rowsAffected = jdbcTemplate.update(sql, idPedido, idProducto);
         return rowsAffected > 0;
     }
 
     @Override
     public boolean deleteByPedidoId(Long idPedido) {
-        String sql = "DELETE FROM detalle_pedido WHERE id_pedido = ?";
+        String sql = "DELETE FROM detalle_pedido WHERE pedido_id_pedido = ?";
         int rowsAffected = jdbcTemplate.update(sql, idPedido);
         return rowsAffected > 0;
     }

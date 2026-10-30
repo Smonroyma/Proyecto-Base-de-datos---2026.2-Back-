@@ -26,7 +26,6 @@ public class Reserva {
     private LocalTime hora;
     private Integer numeroPersonas;
     private String estado;
-    private String observaciones;
 
     private Long idCliente;
     private String nombreCliente;

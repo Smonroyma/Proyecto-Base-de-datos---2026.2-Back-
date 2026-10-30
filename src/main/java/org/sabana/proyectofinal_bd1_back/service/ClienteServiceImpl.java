@@ -10,7 +10,6 @@ import org.sabana.proyectofinal_bd1_back.util.exceptions.ClienteNotFoundExceptio
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -43,6 +42,7 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    @Transactional
     public ClienteResponseDTO crear(ClienteRequestDTO requestDTO) {
         if (clienteRepository.existsByCorreo(requestDTO.getCorreo())) {
             throw new ClienteAlreadyExistsException(
@@ -63,6 +63,7 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    @Transactional
     public ClienteResponseDTO actualizar(Long id, ClienteRequestDTO requestDTO) {
         Cliente clienteExistente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ClienteNotFoundException(id));

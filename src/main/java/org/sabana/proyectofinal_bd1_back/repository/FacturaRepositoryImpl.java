@@ -29,17 +29,18 @@ public class FacturaRepositoryImpl implements FacturaRepository {
      * se resuelven navegando la relación 1:1 obligatoria factura -> pedido.
      */
     private static final String BASE_SELECT = """
-            SELECT f.num_factura, f.id_pedido,
+            SELECT f.num_factura, f.pedido_id_pedido AS id_pedido,
                    f.fecha, f.estado, f.propina, f.impuesto, f.total,
                    p.fecha AS fecha_pedido, p.estado AS estado_pedido, p.observaciones AS observaciones_pedido,
                    c.id_cliente, c.nombre AS nombre_cliente, c.apellido AS apellido_cliente,
-                   c.correo AS correo_cliente, c.telefono AS telefono_cliente,
+                   (SELECT cc.correo FROM cliente_correo cc WHERE cc.cliente_id_cliente = c.id_cliente ORDER BY cc.correo LIMIT 1) AS correo_cliente,
+                   (SELECT ct.telefono FROM cliente_telefono ct WHERE ct.cliente_id_cliente = c.id_cliente ORDER BY ct.telefono LIMIT 1) AS telefono_cliente,
                    s.id_usuario, s.nombres AS nombres_usuario, s.apellidos AS apellidos_usuario,
                    s.correo AS correo_usuario
             FROM factura f
-            INNER JOIN pedido p ON f.id_pedido = p.id_pedido
-            INNER JOIN cliente c ON p.id_cliente = c.id_cliente
-            INNER JOIN staff s ON p.id_usuario = s.id_usuario
+            INNER JOIN pedido p ON f.pedido_id_pedido = p.id_pedido
+            INNER JOIN cliente c ON p.cliente_id_cliente = c.id_cliente
+            INNER JOIN staff s ON p.staff_id_usuario = s.id_usuario
             """;
 
     private final RowMapper<Factura> facturaRowMapper = (rs, rowNum) -> {
@@ -100,7 +101,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
 
     @Override
     public Optional<Factura> findByPedidoId(Long idPedido) {
-        String sql = BASE_SELECT + " WHERE f.id_pedido = ? LIMIT 1";
+        String sql = BASE_SELECT + " WHERE f.pedido_id_pedido = ? LIMIT 1";
         try {
             Factura factura = jdbcTemplate.queryForObject(sql, facturaRowMapper, idPedido);
             if (factura != null) {
@@ -115,7 +116,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
 
     @Override
     public List<Factura> findByClienteId(Long idCliente) {
-        String sql = BASE_SELECT + " WHERE p.id_cliente = ? ORDER BY f.fecha DESC, f.num_factura DESC";
+        String sql = BASE_SELECT + " WHERE p.cliente_id_cliente = ? ORDER BY f.fecha DESC, f.num_factura DESC";
         List<Factura> facturas = jdbcTemplate.query(sql, facturaRowMapper, idCliente);
         cargarPagosEnLista(facturas);
         return facturas;
@@ -137,7 +138,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
     @Override
     public Factura save(Factura factura) {
         String sql = """
-                INSERT INTO factura (num_factura, id_pedido, fecha, estado, propina, impuesto, total)
+                INSERT INTO factura (num_factura, pedido_id_pedido, fecha, estado, propina, impuesto, total)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         LocalDateTime fecha = factura.getFecha() != null ? factura.getFecha() : LocalDateTime.now();
@@ -172,7 +173,7 @@ public class FacturaRepositoryImpl implements FacturaRepository {
 
     @Override
     public boolean existsByPedidoId(Long idPedido) {
-        String sql = "SELECT COUNT(*) FROM factura WHERE id_pedido = ?";
+        String sql = "SELECT COUNT(*) FROM factura WHERE pedido_id_pedido = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, idPedido);
         return count != null && count > 0;
     }

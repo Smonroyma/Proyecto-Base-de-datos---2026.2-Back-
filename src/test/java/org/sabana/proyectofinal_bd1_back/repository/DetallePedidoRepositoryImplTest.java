@@ -48,14 +48,22 @@ class DetallePedidoRepositoryImplTest {
     }
 
     @Test
-    @DisplayName("saveBatch ejecuta batchUpdate con la lista de detalles")
-    void saveBatch_EjecutaBatchUpdate() {
-        when(jdbcTemplate.batchUpdate(anyString(), any(BatchPreparedStatementSetter.class)))
+    @DisplayName("saveBatch ejecuta batchUpdate con la lista de detalles incluyendo precio")
+    void saveBatch_EjecutaBatchUpdate() throws Exception {
+        org.mockito.ArgumentCaptor<BatchPreparedStatementSetter> captor =
+                org.mockito.ArgumentCaptor.forClass(BatchPreparedStatementSetter.class);
+        when(jdbcTemplate.batchUpdate(anyString(), captor.capture()))
                 .thenReturn(new int[]{1});
 
         repository.saveBatch(List.of(detalle));
 
         verify(jdbcTemplate).batchUpdate(anyString(), any(BatchPreparedStatementSetter.class));
+        java.sql.PreparedStatement ps = org.mockito.Mockito.mock(java.sql.PreparedStatement.class);
+        captor.getValue().setValues(ps, 0);
+        verify(ps).setLong(1, 50L);
+        verify(ps).setLong(2, 10L);
+        verify(ps).setInt(3, 2);
+        verify(ps).setDouble(4, 6500.0);
     }
 
     @Test

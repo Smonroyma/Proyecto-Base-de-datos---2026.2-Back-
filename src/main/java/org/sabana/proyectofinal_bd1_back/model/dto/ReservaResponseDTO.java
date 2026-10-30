@@ -53,7 +53,4 @@ public class ReservaResponseDTO {
     @Schema(description = "Estado actual de la reserva", example = "CONFIRMADA")
     private String estado;
 
-    @Schema(description = "Observaciones o peticiones especiales", example = "Celebración de aniversario, mesa junto a la ventana")
-    private String observaciones;
-
 }

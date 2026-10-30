@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -72,10 +71,6 @@ public class ReservaRequestDTO {
     @Pattern(regexp = "^(?i)(PENDIENTE|CONFIRMADA|CANCELADA|COMPLETADA)$", message = "El estado debe ser PENDIENTE, CONFIRMADA, CANCELADA o COMPLETADA")
     @Schema(description = "Estado inicial u operativo de la reserva", example = "PENDIENTE", allowableValues = {"PENDIENTE", "CONFIRMADA", "CANCELADA", "COMPLETADA"})
     private String estado;
-
-    @Size(max = 255, message = "Las observaciones no pueden superar los 255 caracteres")
-    @Schema(description = "Notas u observaciones especiales sobre la reserva", example = "Celebración de aniversario, mesa junto a la ventana")
-    private String observaciones;
 
     public LocalDate resolveFecha() {
         if (fecha != null) {

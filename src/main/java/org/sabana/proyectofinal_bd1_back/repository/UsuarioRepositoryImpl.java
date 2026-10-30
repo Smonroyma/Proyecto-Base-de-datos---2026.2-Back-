@@ -110,14 +110,17 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
     @Transactional
     public Staff save(Staff staff) {
         String sqlStaff = """
-                INSERT INTO staff (nombres, apellidos, correo, contrasena, dos_fac_hab, fecha_inicio)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO staff (nombres, apellidos, correo, contrasena, rol, dos_fac_hab, fecha_inicio)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         LocalDate fechaInicio = staff.getFechaInicio() != null ? staff.getFechaInicio() : LocalDate.now();
         boolean dosFac = Boolean.TRUE.equals(staff.getDosFacHab());
         String correoLower = staff.getCorreo().trim().toLowerCase();
         String apellidos = staff.getApellidos() != null ? staff.getApellidos().trim() : "";
+        String rol = staff.getRol() != null && "ADMINISTRADOR".equalsIgnoreCase(staff.getRol().trim())
+                ? "ADMINISTRADOR"
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -126,8 +129,9 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
             ps.setString(2, apellidos);
             ps.setString(3, correoLower);
             ps.setString(4, staff.getContrasena());
-            ps.setBoolean(5, dosFac);
-            ps.setDate(6, Date.valueOf(fechaInicio));
+            ps.setString(5, rol);
+            ps.setBoolean(6, dosFac);
+            ps.setDate(7, Date.valueOf(fechaInicio));
             return ps;
         }, keyHolder);
 
@@ -135,9 +139,6 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
         if (generatedKey != null) {
             staff.setIdUsuario(generatedKey.longValue());
         }
-
-        String rol = staff.getRol() != null ? staff.getRol().trim().toUpperCase()
-                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         if ("ADMINISTRADOR".equals(rol)) {
             jdbcTemplate.update("INSERT INTO administrador (id_usuario) VALUES (?)", staff.getIdUsuario());
@@ -165,10 +166,13 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
         String correoLower = staff.getCorreo().trim().toLowerCase();
         String apellidos = staff.getApellidos() != null ? staff.getApellidos().trim() : "";
         boolean dosFac = Boolean.TRUE.equals(staff.getDosFacHab());
+        String rol = staff.getRol() != null && "ADMINISTRADOR".equalsIgnoreCase(staff.getRol().trim())
+                ? "ADMINISTRADOR"
+                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         String sqlUpdateStaff = """
                 UPDATE staff
-                SET nombres = ?, apellidos = ?, correo = ?, contrasena = ?, dos_fac_hab = ?
+                SET nombres = ?, apellidos = ?, correo = ?, contrasena = ?, rol = ?, dos_fac_hab = ?
                 WHERE id_usuario = ?
                 """;
         jdbcTemplate.update(
@@ -177,12 +181,10 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
                 apellidos,
                 correoLower,
                 staff.getContrasena(),
+                rol,
                 dosFac,
                 staff.getIdUsuario()
         );
-
-        String rol = staff.getRol() != null ? staff.getRol().trim().toUpperCase()
-                : (staff instanceof Administrador ? "ADMINISTRADOR" : "MESERO");
 
         if ("ADMINISTRADOR".equals(rol)) {
             jdbcTemplate.update("DELETE FROM mesero WHERE id_usuario = ?", staff.getIdUsuario());
