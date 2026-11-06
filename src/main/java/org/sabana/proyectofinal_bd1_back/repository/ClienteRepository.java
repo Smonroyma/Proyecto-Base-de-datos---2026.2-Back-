@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Cliente;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para la gestión de persistencia de Cliente mediante SQL nativo.
- */
 public interface ClienteRepository {
 
     Optional<Cliente> findById(Long id);

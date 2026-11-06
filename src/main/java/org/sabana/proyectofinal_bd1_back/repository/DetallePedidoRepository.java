@@ -5,10 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.DetallePedido;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para DetallePedido mediante SQL nativo y JdbcTemplate.
- * Clave compuesta (id_pedido, id_producto) sin clases intermedias JPA.
- */
 public interface DetallePedidoRepository {
 
     void saveBatch(List<DetallePedido> detalles);

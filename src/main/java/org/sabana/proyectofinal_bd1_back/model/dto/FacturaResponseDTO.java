@@ -10,10 +10,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DTO de salida con el comprobante completo de una factura (IVA 19%) y el desglose de sus pagos.
- * No incluye subtotal, idUsuario ni idCliente directos (se obtienen a través del Pedido 1:1).
- */
 @Data
 @Builder
 @NoArgsConstructor

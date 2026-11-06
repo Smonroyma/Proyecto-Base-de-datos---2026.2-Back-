@@ -12,10 +12,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de persistencia para DetallePedido (tabla 'detalle_pedido')
- * utilizando SQL nativo puro y JdbcTemplate con clave compuesta (id_pedido, id_producto).
- */
 @Repository
 public class DetallePedidoRepositoryImpl implements DetallePedidoRepository {
 

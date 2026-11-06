@@ -12,9 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Implementación de la lógica de negocio para la gestión de mesas.
- */
 @Service
 public class MesaServiceImpl implements MesaService {
 

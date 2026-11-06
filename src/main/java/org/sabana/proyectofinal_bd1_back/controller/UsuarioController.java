@@ -31,10 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para la gestión y administración de Staff (Administradores y Meseros).
- * Protegido para acceso exclusivo de usuarios con rol ADMINISTRADOR.
- */
 @RestController
 @RequestMapping({"/api/usuarios", "/api/staff", "/api/meseros"})
 @Tag(name = "Staff / Usuarios", description = "Endpoints administrativos para la gestión de Administradores y Meseros (Exclusivo rol ADMINISTRADOR)")

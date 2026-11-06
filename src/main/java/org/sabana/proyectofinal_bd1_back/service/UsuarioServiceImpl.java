@@ -21,9 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Implementación de la lógica de negocio para la administración de Staff (Administradores y Meseros).
- */
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
 

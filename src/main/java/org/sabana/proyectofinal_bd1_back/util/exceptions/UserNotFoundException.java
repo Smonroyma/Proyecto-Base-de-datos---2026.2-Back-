@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.util.exceptions;
 
-/**
- * Excepción lanzada cuando un usuario solicitado no existe en el sistema.
- */
 public class UserNotFoundException extends ResourceNotFoundException {
 
     public UserNotFoundException(Long idUsuario) {

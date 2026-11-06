@@ -14,9 +14,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Controlador REST para la consulta del panel de control y analítica operativa en tiempo real.
- */
 @RestController
 @RequestMapping("/api/dashboard")
 @Tag(name = "Dashboard", description = "Endpoints para la visualización de indicadores operativos y financieros en tiempo real")

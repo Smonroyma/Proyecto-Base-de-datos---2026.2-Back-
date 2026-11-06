@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.util.exceptions;
 
-/**
- * Excepción lanzada cuando un producto solicitado no existe en el sistema.
- */
 public class ProductoNotFoundException extends ResourceNotFoundException {
 
     public ProductoNotFoundException(Long idProducto) {

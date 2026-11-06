@@ -12,9 +12,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de entrada para la creación y actualización de productos.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -13,10 +13,6 @@ import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de ClienteRepository utilizando exclusivamente sentencias SQL nativas y JdbcTemplate.
- * Gestiona de forma transparente la tabla padre 'cliente' y las tablas hijas 'cliente_correo' y 'cliente_telefono'.
- */
 @Repository
 public class ClienteRepositoryImpl implements ClienteRepository {
 

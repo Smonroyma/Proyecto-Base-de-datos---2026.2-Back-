@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.model.entity;
 
-/**
- * Enumeración con los estados permitidos para una Mesa en el sistema.
- */
 public enum EstadoMesa {
     DISPONIBLE,
     OCUPADA,

@@ -18,9 +18,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de ReservaRepository utilizando sentencias SQL nativas y JdbcTemplate.
- */
 @Repository
 public class ReservaRepositoryImpl implements ReservaRepository {
 
@@ -110,7 +107,7 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     public List<Mesa> findMesasDisponibles(LocalDateTime fechaHora, Integer capacidadRequerida) {
         LocalDate fecha = fechaHora.toLocalDate();
         LocalTime hora = fechaHora.toLocalTime();
-        // Bloqueo de 3 horas (INTERVAL '3 hours') alineado con ex_reserva_sin_cruces en PostgreSQL
+
         LocalTime windowStart = hora.isBefore(LocalTime.of(DURACION_BLOQUEO_RESERVA_HORAS, 0))
                 ? LocalTime.MIN
                 : hora.minusHours(DURACION_BLOQUEO_RESERVA_HORAS).plusMinutes(1);
@@ -214,7 +211,7 @@ public class ReservaRepositoryImpl implements ReservaRepository {
     public boolean existsOverlappingReserva(Integer numeroMesa, LocalDateTime fechaHora, Long excludeReservaId) {
         LocalDate fecha = fechaHora.toLocalDate();
         LocalTime hora = fechaHora.toLocalTime();
-        // Bloqueo de 3 horas (INTERVAL '3 hours') alineado con ex_reserva_sin_cruces en PostgreSQL
+
         LocalTime windowStart = hora.isBefore(LocalTime.of(DURACION_BLOQUEO_RESERVA_HORAS, 0))
                 ? LocalTime.MIN
                 : hora.minusHours(DURACION_BLOQUEO_RESERVA_HORAS).plusMinutes(1);

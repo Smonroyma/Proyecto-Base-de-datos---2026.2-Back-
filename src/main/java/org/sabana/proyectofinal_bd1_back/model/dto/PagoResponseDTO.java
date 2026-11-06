@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO de salida con la información de un pago aplicado a una factura.
- */
 @Data
 @Builder
 @NoArgsConstructor

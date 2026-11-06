@@ -7,9 +7,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.ReservaResponseDTO;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Contrato del servicio de reservas en Savana Data Coffee.
- */
 public interface ReservaService {
 
     List<ReservaResponseDTO> obtenerReservas(Long clienteId, String correo, Integer numeroMesa, String estado);

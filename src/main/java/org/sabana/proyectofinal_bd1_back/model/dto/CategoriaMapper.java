@@ -6,9 +6,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Categoria;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para transformar entre Categoria y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface CategoriaMapper {
 

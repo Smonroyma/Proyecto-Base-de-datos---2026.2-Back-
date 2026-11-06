@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.util.exceptions;
 
-/**
- * Excepción lanzada cuando una mesa solicitada no existe en el sistema.
- */
 public class MesaNotFoundException extends ResourceNotFoundException {
 
     public MesaNotFoundException(Integer numeroMesa) {

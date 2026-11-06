@@ -10,9 +10,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DTO de salida con los datos completos y estructurados de un pedido.
- */
 @Data
 @Builder
 @NoArgsConstructor

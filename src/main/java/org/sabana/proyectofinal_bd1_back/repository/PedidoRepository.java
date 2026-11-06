@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Pedido;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para Pedido mediante SQL nativo.
- */
 public interface PedidoRepository {
 
     Optional<Pedido> findById(Long id);

@@ -7,9 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de respuesta para operaciones de autenticación (Login, Registro y 2FA).
- */
 @Data
 @Builder
 @NoArgsConstructor

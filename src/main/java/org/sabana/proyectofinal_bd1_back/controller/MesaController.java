@@ -29,9 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para la gestión de mesas en Savana Data Coffee.
- */
 @RestController
 @RequestMapping("/api/mesas")
 @Tag(name = "Mesas", description = "Endpoints para la gestión, control de capacidad y estado de mesas en el salón")

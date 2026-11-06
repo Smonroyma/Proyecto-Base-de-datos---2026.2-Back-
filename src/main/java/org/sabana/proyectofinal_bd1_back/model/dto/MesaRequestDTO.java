@@ -11,9 +11,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de entrada para la creación y actualización de mesas.
- */
 @Data
 @Builder
 @NoArgsConstructor

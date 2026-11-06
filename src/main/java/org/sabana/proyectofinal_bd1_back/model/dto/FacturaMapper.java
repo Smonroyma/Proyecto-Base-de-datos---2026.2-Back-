@@ -6,9 +6,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Factura;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para transformar entre Factura y sus DTOs.
- */
 @Mapper(componentModel = "spring", uses = {PagoMapper.class})
 public interface FacturaMapper {
 

@@ -21,9 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Controlador REST para la administración de métodos de pago en Savana Data Coffee.
- */
 @RestController
 @RequestMapping("/api/metodos-pago")
 @Tag(name = "Métodos de Pago", description = "Endpoints para la configuración y consulta de medios de pago habilitados en caja (EFECTIVO, TARJETA, TRANSFERENCIA)")

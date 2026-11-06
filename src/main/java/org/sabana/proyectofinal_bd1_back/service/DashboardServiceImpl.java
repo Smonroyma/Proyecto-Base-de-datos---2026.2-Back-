@@ -10,9 +10,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 
-/**
- * Implementación de la lógica de negocio para el Dashboard Operativo y Analítica en Tiempo Real.
- */
 @Service
 public class DashboardServiceImpl implements DashboardService {
 

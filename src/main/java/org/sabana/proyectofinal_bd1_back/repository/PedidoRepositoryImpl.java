@@ -16,9 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de persistencia para Pedido mediante SQL nativo y JdbcTemplate.
- */
 @Repository
 public class PedidoRepositoryImpl implements PedidoRepository {
 

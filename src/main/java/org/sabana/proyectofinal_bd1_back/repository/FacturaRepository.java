@@ -6,9 +6,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para la entidad Factura.
- */
 public interface FacturaRepository {
 
     Optional<Factura> findByNumFactura(String numFactura);

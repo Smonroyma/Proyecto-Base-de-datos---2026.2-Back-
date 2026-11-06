@@ -27,9 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Controlador REST para la gestión de categorías en Savana Data Coffee.
- */
 @RestController
 @RequestMapping("/api/categorias")
 @Tag(name = "Categorías", description = "Endpoints para la administración del catálogo de categorías de productos")

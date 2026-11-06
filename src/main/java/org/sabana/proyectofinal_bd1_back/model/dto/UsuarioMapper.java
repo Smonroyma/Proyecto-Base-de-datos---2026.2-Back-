@@ -10,9 +10,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Mapper MapStruct para conversiones entre la jerarquía Staff (Administrador / Mesero) y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface UsuarioMapper {
 

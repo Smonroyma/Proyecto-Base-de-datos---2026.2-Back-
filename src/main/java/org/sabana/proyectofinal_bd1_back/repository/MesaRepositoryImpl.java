@@ -14,15 +14,9 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de MesaRepository utilizando sentencias SQL nativas y JdbcTemplate.
- */
 @Repository
 public class MesaRepositoryImpl implements MesaRepository {
 
-    /**
-     * Ventana de bloqueo por reserva activa en salón: 3 horas (INTERVAL '3 hours').
-     */
     public static final int DURACION_BLOQUEO_RESERVA_HORAS = 3;
 
     private final JdbcTemplate jdbcTemplate;

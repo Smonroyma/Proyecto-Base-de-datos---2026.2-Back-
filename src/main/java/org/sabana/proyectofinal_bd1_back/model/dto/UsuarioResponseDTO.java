@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-/**
- * DTO de respuesta para presentar información pública de un miembro del Staff (Administrador o Mesero).
- */
 @Data
 @Builder
 @NoArgsConstructor

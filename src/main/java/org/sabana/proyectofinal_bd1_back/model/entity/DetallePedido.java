@@ -7,10 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * Entidad de dominio DetallePedido (POJO puro sin anotaciones JPA).
- * Representa la tabla asociativa 'detalle_pedido' con clave compuesta (id_pedido, id_producto) en SQL.
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,7 +19,6 @@ public class DetallePedido {
     private Double precio;
     private String nombreProducto;
 
-    // Métodos alias para compatibilidad con pedidoId / productoId
     public Long getPedidoId() {
         return idPedido;
     }

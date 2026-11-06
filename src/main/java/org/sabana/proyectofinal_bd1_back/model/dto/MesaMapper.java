@@ -6,9 +6,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Mesa;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para la conversión entre Mesa y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface MesaMapper {
 

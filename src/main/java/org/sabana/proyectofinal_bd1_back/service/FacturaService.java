@@ -7,9 +7,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.PagoResponseDTO;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Contrato de servicio para el procesamiento de pagos (Pago -> Factura con 19% IVA) y consulta de facturas/pagos.
- */
 public interface FacturaService {
 
     FacturaResponseDTO procesarPagoYEmitirFactura(FacturaRequestDTO requestDTO);

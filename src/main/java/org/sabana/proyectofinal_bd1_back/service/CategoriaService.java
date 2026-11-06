@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.CategoriaResponseDTO;
 
 import java.util.List;
 
-/**
- * Contrato de servicios de negocio para la gestión de categorías.
- */
 public interface CategoriaService {
 
     List<CategoriaResponseDTO> obtenerCategorias(String estado);

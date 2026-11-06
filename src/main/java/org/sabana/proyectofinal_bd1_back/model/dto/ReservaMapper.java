@@ -7,9 +7,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Reserva;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para la transformación entre Reserva y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface ReservaMapper {
 

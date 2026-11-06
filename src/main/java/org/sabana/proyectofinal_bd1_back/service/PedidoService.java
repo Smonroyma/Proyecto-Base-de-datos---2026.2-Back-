@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.PedidoResponseDTO;
 
 import java.util.List;
 
-/**
- * Contrato de servicio para la gestión de pedidos y comandas en Savana Data Coffee.
- */
 public interface PedidoService {
 
     PedidoResponseDTO crearPedido(PedidoRequestDTO requestDTO);

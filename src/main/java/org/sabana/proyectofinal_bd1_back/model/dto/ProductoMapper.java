@@ -7,9 +7,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Producto;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para transformar entre Producto y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface ProductoMapper {
 

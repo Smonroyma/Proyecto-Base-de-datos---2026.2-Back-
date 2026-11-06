@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de salida para presentar los datos de clientes al cliente API.
- */
 @Data
 @Builder
 @NoArgsConstructor

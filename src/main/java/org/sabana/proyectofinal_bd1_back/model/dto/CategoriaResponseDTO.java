@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de salida para presentar la información de una categoría al cliente.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -9,11 +9,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * Entidad de dominio Reserva.
- * POJO puro sin anotaciones de persistencia JPA.
- * Representa la tabla 'reserva' con clave compuesta unida de forma simple (idReserva_idCliente) sin clases adicionales.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -6,10 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de salida con la información estructurada de un método de pago.
- * Contiene únicamente el atributo tipo que lo identifica.
- */
 @Data
 @Builder
 @NoArgsConstructor

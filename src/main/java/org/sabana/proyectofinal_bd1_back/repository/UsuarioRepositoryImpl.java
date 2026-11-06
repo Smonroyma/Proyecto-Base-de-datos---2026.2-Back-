@@ -17,10 +17,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de UsuarioRepository utilizando consultas SQL nativas y JdbcTemplate
- * realizando JOIN entre la tabla padre 'staff' y las tablas hijas 'administrador' y 'mesero'.
- */
 @Repository
 public class UsuarioRepositoryImpl implements UsuarioRepository {
 

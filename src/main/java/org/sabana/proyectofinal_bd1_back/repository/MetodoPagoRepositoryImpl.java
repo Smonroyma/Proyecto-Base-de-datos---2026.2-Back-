@@ -9,9 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de MetodoPagoRepository utilizando sentencias SQL nativas puras y JdbcTemplate.
- */
 @Repository
 public class MetodoPagoRepositoryImpl implements MetodoPagoRepository {
 

@@ -22,9 +22,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Controlador REST para autenticación del Staff y verificación en dos pasos (2FA) con OTP en memoria.
- */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Autenticación & 2FA", description = "Endpoints para inicio de sesión seguro del Staff con JWT y validación OTP en memoria")

@@ -10,9 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para la verificación del código OTP en el segundo factor de autenticación.
- */
 @Data
 @Builder
 @NoArgsConstructor

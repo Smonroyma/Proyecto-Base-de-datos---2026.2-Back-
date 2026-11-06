@@ -123,7 +123,6 @@ class FacturaServiceImplTest {
                 .precio(10000.0)
                 .build();
 
-        // Subtotal calculado = 20000.0, Impuesto IVA 19% = 3800.0, Propina = 2000.0 -> Total = 25800.0
         pedido = Pedido.builder()
                 .idPedido(50L)
                 .idCliente(1L)

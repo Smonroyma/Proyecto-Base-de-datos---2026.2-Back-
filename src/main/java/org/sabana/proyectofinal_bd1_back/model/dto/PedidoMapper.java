@@ -7,9 +7,6 @@ import org.sabana.proyectofinal_bd1_back.util.SubtotalCalculator;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para transformaciones entre Pedido y sus DTOs.
- */
 @Mapper(componentModel = "spring", uses = {DetallePedidoMapper.class})
 public interface PedidoMapper {
 

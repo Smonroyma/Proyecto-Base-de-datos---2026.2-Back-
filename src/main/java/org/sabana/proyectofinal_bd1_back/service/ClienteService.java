@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.ClienteResponseDTO;
 
 import java.util.List;
 
-/**
- * Interfaz de servicio con la lógica de negocio para la gestión de clientes.
- */
 public interface ClienteService {
 
     ClienteResponseDTO buscarPorId(Long id);

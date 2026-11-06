@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.model.entity;
 
-/**
- * Enumeración con los estados permitidos para una Reserva en Savana Data Coffee.
- */
 public enum EstadoReserva {
     PENDIENTE,
     CONFIRMADA,

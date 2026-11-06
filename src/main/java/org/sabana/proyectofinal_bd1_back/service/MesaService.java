@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.MesaResponseDTO;
 
 import java.util.List;
 
-/**
- * Interfaz de servicio para la lógica de negocio del módulo de Mesas.
- */
 public interface MesaService {
 
     MesaResponseDTO buscarPorNumero(Integer numeroMesa);

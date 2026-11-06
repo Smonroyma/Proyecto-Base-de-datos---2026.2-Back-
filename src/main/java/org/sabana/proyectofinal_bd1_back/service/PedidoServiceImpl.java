@@ -30,17 +30,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Implementación de la lógica de negocio para la gestión transaccional de Pedidos y Detalles.
- * Regla V2:
- * - Todo pedido exige obligatoriamente una mesa (numeroMesa) y un cliente (idCliente).
- * - El subtotal (antes de IVA 19% y propina) NO se persiste: se calcula dinámicamente
- *   sumando cantidad * precio de cada producto del detalle (ver SubtotalCalculator).
- * - Máquina de estados unidireccional estricta:
- *   PENDIENTE -> EN_PREPARACION | CANCELADO
- *   EN_PREPARACION -> ENTREGADO
- *   ENTREGADO -> PAGADO
- */
 @Service
 public class PedidoServiceImpl implements PedidoService {
 
@@ -98,7 +87,6 @@ public class PedidoServiceImpl implements PedidoService {
             throw new IllegalArgumentException("El pedido debe contener al menos un detalle de producto");
         }
 
-        // Agrupación en lista pura (sin HashMaps) para sumar cantidades de productos repetidos
         List<DetallePedido> detallesAgrupados = new ArrayList<>();
         for (DetallePedidoRequestDTO itemReq : requestDTO.getDetalles()) {
             if (itemReq.getIdProducto() == null || itemReq.getCantidad() == null) {

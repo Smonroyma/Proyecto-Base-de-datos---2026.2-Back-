@@ -15,10 +15,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * DTO de entrada para la solicitud de creación y actualización de reservas.
- * Soporta tanto idCliente existente como registro/reutilización automática de cliente por correo único.
- */
 @Data
 @Builder
 @NoArgsConstructor

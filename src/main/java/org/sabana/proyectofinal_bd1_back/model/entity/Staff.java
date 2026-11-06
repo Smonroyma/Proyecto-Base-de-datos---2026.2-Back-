@@ -7,10 +7,6 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 
-/**
- * Entidad de dominio Staff.
- * POJO puro sin anotaciones de persistencia JPA.
- */
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -25,9 +21,6 @@ public class Staff {
     private Boolean dosFacHab;
     private LocalDate fechaInicio;
 
-    /**
-     * Rol resuelto según la tabla hija (ADMINISTRADOR o MESERO).
-     */
     private String rol;
 
     public String getNombreCompleto() {

@@ -9,11 +9,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad de dominio Pedido.
- * POJO puro sin anotaciones de persistencia JPA.
- * Regla V3: El atributo subtotal NO existe en la entidad ni en la tabla; se calcula dinámicamente en el servicio.
- */
 @Data
 @Builder
 @NoArgsConstructor

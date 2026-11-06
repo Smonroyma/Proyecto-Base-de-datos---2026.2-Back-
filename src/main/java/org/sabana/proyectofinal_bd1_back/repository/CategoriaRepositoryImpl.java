@@ -9,9 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de CategoriaRepository utilizando sentencias SQL nativas y JdbcTemplate.
- */
 @Repository
 public class CategoriaRepositoryImpl implements CategoriaRepository {
 

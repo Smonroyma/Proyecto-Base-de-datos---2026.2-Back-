@@ -5,10 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Producto;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para la entidad Producto.
- * Todas las operaciones se realizan exclusivamente mediante SQL nativo.
- */
 public interface ProductoRepository {
 
     Optional<Producto> findById(Long id);

@@ -9,9 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de entrada para cada ítem en el registro de un pedido.
- */
 @Data
 @Builder
 @NoArgsConstructor

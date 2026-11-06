@@ -9,11 +9,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad de dominio Factura.
- * POJO puro sin anotaciones de persistencia JPA.
- * Regla V3: No tiene subtotal, ni idUsuario, ni idCliente directos en BD (se resuelven a través del Pedido).
- */
 @Data
 @Builder
 @NoArgsConstructor

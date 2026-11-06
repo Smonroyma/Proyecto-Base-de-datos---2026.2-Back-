@@ -9,9 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para la petición de inicio de sesión primario del Staff.
- */
 @Data
 @Builder
 @NoArgsConstructor

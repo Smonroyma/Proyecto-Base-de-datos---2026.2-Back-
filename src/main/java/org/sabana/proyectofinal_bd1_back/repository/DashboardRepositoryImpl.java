@@ -7,9 +7,6 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-/**
- * Implementación de DashboardRepository mediante consultas de agregación en SQL nativo puro y JdbcTemplate.
- */
 @Repository
 public class DashboardRepositoryImpl implements DashboardRepository {
 

@@ -10,9 +10,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * DTO de salida con los datos completos de una reserva.
- */
 @Data
 @Builder
 @NoArgsConstructor

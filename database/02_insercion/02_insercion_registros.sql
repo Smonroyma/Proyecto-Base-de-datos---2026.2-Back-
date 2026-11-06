@@ -1,14 +1,4 @@
--- =========================================================
--- 02_insercion_registros.sql
--- Ejecutar una sola vez después del archivo 01.
--- Datos ficticios. Importes en COP.
--- =========================================================
-
 BEGIN;
-
--- =========================================================
--- 1. CLIENTE: 50
--- =========================================================
 
 INSERT INTO cliente (id_cliente, nombre, apellido)
 SELECT
@@ -19,10 +9,6 @@ SELECT
     ])[((n - 1) % 10) + 1],
     'Prueba ' || n
 FROM generate_series(1, 50) AS g(n);
-
--- =========================================================
--- 2. CLIENTE_TELEFONO: 60
--- =========================================================
 
 INSERT INTO cliente_telefono (telefono, cliente_id_cliente)
 SELECT
@@ -36,10 +22,6 @@ SELECT
     n
 FROM generate_series(1, 10) AS g(n);
 
--- =========================================================
--- 3. CLIENTE_CORREO: 60
--- =========================================================
-
 INSERT INTO cliente_correo (correo, cliente_id_cliente)
 SELECT
     'cliente' || n || '@example.com',
@@ -51,11 +33,6 @@ SELECT
     'cliente' || n || '.alterno@example.com',
     n
 FROM generate_series(1, 10) AS g(n);
-
--- =========================================================
--- 4. STAFF: 50
--- Contraseña de prueba almacenada mediante hash bcrypt.
--- =========================================================
 
 INSERT INTO staff (
     id_usuario,
@@ -81,25 +58,13 @@ SELECT
     DATE '2026-09-01' + ((n - 1) % 20)
 FROM generate_series(1, 50) AS g(n);
 
--- =========================================================
--- 5. ADMINISTRADOR: 5
--- =========================================================
-
 INSERT INTO administrador (id_usuario)
 SELECT n
 FROM generate_series(1, 5) AS g(n);
 
--- =========================================================
--- 6. MESERO: 45
--- =========================================================
-
 INSERT INTO mesero (id_usuario, estado)
 SELECT n, 'ACTIVO'
 FROM generate_series(6, 50) AS g(n);
-
--- =========================================================
--- 7. MESA: 12
--- =========================================================
 
 INSERT INTO mesa (num_mesa, capacidad, estado)
 SELECT
@@ -113,10 +78,6 @@ SELECT
     'DISPONIBLE'
 FROM generate_series(1, 12) AS g(n);
 
--- =========================================================
--- 8. CATEGORIA: 5
--- =========================================================
-
 INSERT INTO categoria (
     nombre_categoria,
     descripcion,
@@ -128,12 +89,6 @@ VALUES
     ('Bebidas calientes', 'Cafe y otras bebidas calientes', 'ACTIVA'),
     ('Bebidas frias', 'Jugos y otras bebidas frias', 'ACTIVA'),
     ('Postres', 'Opciones dulces', 'ACTIVA');
-
--- =========================================================
--- 9. PRODUCTO: 20
--- Se completan todos los atributos.
--- Las rutas de imagen son ejemplos.
--- =========================================================
 
 INSERT INTO producto (
     id_producto,
@@ -178,21 +133,11 @@ FROM (
         (20, 'Flan', 10000, 'Postres')
 ) AS v(id, nombre, precio, categoria);
 
--- =========================================================
--- 10. METODO_PAGO: 3
--- =========================================================
-
 INSERT INTO metodo_pago (tipo)
 VALUES
     ('EFECTIVO'),
     ('TARJETA'),
     ('TRANSFERENCIA');
-
--- =========================================================
--- 11. RESERVA: 50
--- Cada mesa recibe como máximo una reserva por día.
--- Todas tienen dos personas, sin exceder capacidad.
--- =========================================================
 
 INSERT INTO reserva (
     id_reserva,
@@ -215,12 +160,6 @@ SELECT
     ((n - 1) % 12) + 1,
     n
 FROM generate_series(1, 50) AS g(n);
-
--- =========================================================
--- 12. PEDIDO: 60
--- Exclusivamente meseros (IDs 6 a 50) registran pedidos.
--- Todos tienen cliente y mesa.
--- =========================================================
 
 INSERT INTO pedido (
     id_pedido,
@@ -245,12 +184,6 @@ SELECT
     ((n - 1) % 12) + 1,
     ((n - 1) % 50) + 1
 FROM generate_series(1, 60) AS g(n);
-
--- =========================================================
--- 13. DETALLE_PEDIDO: 120
--- Dos productos diferentes por pedido.
--- Conserva el precio de la venta.
--- =========================================================
 
 INSERT INTO detalle_pedido (
     cantidad,
@@ -282,12 +215,6 @@ FROM pedido pe
 JOIN producto pr
     ON pr.id_producto = ((pe.id_pedido - 1) % 8) + 9;
 
--- =========================================================
--- 14. FACTURA: 50
--- Impuesto IVA del 19 % (0.19).
--- Propina de ejemplo: cero.
--- =========================================================
-
 INSERT INTO factura (
     num_factura,
     fecha,
@@ -309,12 +236,6 @@ FROM pedido p
 JOIN vw_subtotal_pedido v
     ON v.id_pedido = p.id_pedido
 WHERE p.estado = 'PAGADO';
-
--- =========================================================
--- 15. PAGO: 75
--- Las primeras 25 facturas tienen dos pagos.
--- Las siguientes 25 tienen uno.
--- =========================================================
 
 INSERT INTO pago (
     id_pago,
@@ -369,10 +290,6 @@ SELECT
     'TRANSFERENCIA'
 FROM factura
 WHERE pedido_id_pedido > 25;
-
--- =========================================================
--- AJUSTE DE LAS SECUENCIAS DE IDENTIDAD
--- =========================================================
 
 SELECT setval(
     pg_get_serial_sequence('cliente', 'id_cliente'),

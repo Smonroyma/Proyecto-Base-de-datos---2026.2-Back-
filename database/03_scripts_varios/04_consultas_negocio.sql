@@ -1,11 +1,5 @@
--- =========================================================
--- 04_consultas_negocio.sql
--- Reportes del restaurante.
--- =========================================================
-
 BEGIN TRANSACTION READ ONLY;
 
--- 1. Menú disponible.
 SELECT
     p.id_producto,
     p.nombre,
@@ -21,7 +15,6 @@ WHERE p.disponibilidad = TRUE
   AND c.estado = 'ACTIVA'
 ORDER BY categoria, p.nombre;
 
--- 2. Productos más vendidos en pedidos atendidos.
 SELECT
     pr.nombre,
     SUM(d.cantidad) AS unidades,
@@ -33,7 +26,6 @@ WHERE p.estado IN ('ENTREGADO', 'PAGADO')
 GROUP BY pr.id_producto, pr.nombre
 ORDER BY unidades DESC, pr.nombre;
 
--- 3. Ventas facturadas por día, excluyendo anuladas.
 SELECT
     fecha::DATE AS dia,
     COUNT(*) AS facturas,
@@ -43,7 +35,6 @@ WHERE estado <> 'ANULADA'
 GROUP BY fecha::DATE
 ORDER BY dia;
 
--- 4. Recaudo válido por método.
 SELECT
     mp.tipo,
     COUNT(pa.id_pago) AS pagos,
@@ -59,14 +50,12 @@ LEFT JOIN (
 GROUP BY mp.tipo
 ORDER BY recaudo DESC;
 
--- 5. Facturas con saldo pendiente.
 SELECT *
 FROM vw_saldo_factura
 WHERE estado <> 'ANULADA'
   AND saldo > 0
 ORDER BY saldo DESC;
 
--- 6. Pedidos pendientes y en preparación.
 SELECT
     p.id_pedido,
     p.fecha,
@@ -81,7 +70,6 @@ JOIN staff s ON s.id_usuario = p.staff_id_usuario
 WHERE p.estado IN ('PENDIENTE', 'EN_PREPARACION')
 ORDER BY p.fecha, p.id_pedido;
 
--- 7. Pedidos por responsable.
 SELECT
     s.id_usuario,
     s.nombres,
@@ -92,7 +80,6 @@ LEFT JOIN pedido p ON p.staff_id_usuario = s.id_usuario
 GROUP BY s.id_usuario, s.nombres, s.rol
 ORDER BY pedidos DESC, s.id_usuario;
 
--- 8. Ventas por mesa sin duplicar facturas por pagos.
 SELECT
     m.num_mesa,
     COUNT(f.num_factura) AS facturas,
@@ -105,7 +92,6 @@ LEFT JOIN factura f
 GROUP BY m.num_mesa
 ORDER BY total_facturado DESC;
 
--- 9. Reservas con hora de finalización calculada.
 SELECT
     r.id_reserva,
     c.nombre,
@@ -119,8 +105,6 @@ FROM reserva r
 JOIN cliente c ON c.id_cliente = r.cliente_id_cliente
 ORDER BY inicio, r.id_reserva;
 
--- 10. Mesas disponibles para una solicitud de ejemplo.
--- Cambiar inicio y personas.
 WITH solicitud AS (
     SELECT
         TIMESTAMP '2026-11-15 12:00:00' AS inicio,
@@ -141,13 +125,11 @@ WHERE m.estado <> 'EN_MANTENIMIENTO'
   )
 ORDER BY m.capacidad, m.num_mesa;
 
--- 11. Productos con pocas unidades.
 SELECT id_producto, nombre, stock
 FROM producto
 WHERE stock < 10
 ORDER BY stock, nombre;
 
--- 12. Clientes con más reservas no canceladas.
 SELECT
     c.id_cliente,
     c.nombre,
@@ -160,7 +142,6 @@ LEFT JOIN reserva r
 GROUP BY c.id_cliente, c.nombre, c.apellido
 ORDER BY reservas DESC, c.id_cliente;
 
--- 13. Estadísticas de facturación.
 SELECT
     ROUND(AVG(total), 2) AS promedio,
     MIN(total) AS minimo,

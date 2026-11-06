@@ -8,9 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para la actualización de estado de un pedido.
- */
 @Data
 @Builder
 @NoArgsConstructor

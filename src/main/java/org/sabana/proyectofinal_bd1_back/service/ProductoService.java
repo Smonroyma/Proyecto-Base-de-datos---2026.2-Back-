@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.ProductoResponseDTO;
 
 import java.util.List;
 
-/**
- * Contrato de servicio para la gestión de productos en Savana Data Coffee.
- */
 public interface ProductoService {
 
     List<ProductoResponseDTO> obtenerProductos(String nombreCategoria, Boolean disponibilidad);

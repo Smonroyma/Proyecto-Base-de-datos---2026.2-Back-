@@ -25,10 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Controlador REST para el procesamiento de pagos y generación automática de facturas (IVA 19%) en Savana Data Coffee.
- * Regla V2: Exclusivo para ROLE_MESERO en el registro de pagos (POST /api/pagos).
- */
 @RestController
 @RequestMapping("/api/pagos")
 @Tag(name = "Pagos", description = "Endpoints para procesar el pago de pedidos en mesa y generar automáticamente su factura con 19% IVA")

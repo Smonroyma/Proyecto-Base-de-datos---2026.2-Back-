@@ -13,10 +13,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * DTO de entrada para la creación de un nuevo pedido en Savana Data Coffee.
- * Todo pedido es exclusivamente en mesa y requiere numeroMesa, idCliente e idUsuario (Mesero).
- */
 @Data
 @Builder
 @NoArgsConstructor

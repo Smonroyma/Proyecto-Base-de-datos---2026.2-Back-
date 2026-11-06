@@ -11,9 +11,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * Representa la estructura estándar para las respuestas de error de la API.
- */
 @Data
 @Builder
 @NoArgsConstructor

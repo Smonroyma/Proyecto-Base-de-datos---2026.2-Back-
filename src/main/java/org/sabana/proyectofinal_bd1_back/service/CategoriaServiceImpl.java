@@ -11,9 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Implementación de la lógica de negocio para la gestión de categorías.
- */
 @Service
 public class CategoriaServiceImpl implements CategoriaService {
 

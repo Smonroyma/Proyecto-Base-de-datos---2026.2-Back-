@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Pago;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para los pagos asociados a una factura (tabla pago).
- */
 public interface PagoFacturaRepository {
 
     void saveBatch(List<Pago> pagos);

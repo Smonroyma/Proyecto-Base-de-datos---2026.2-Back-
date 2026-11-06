@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.MetodoPago;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para la entidad MetodoPago.
- */
 public interface MetodoPagoRepository {
 
     Optional<MetodoPago> findByTipo(String tipo);

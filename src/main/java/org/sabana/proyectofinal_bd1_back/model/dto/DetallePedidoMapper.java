@@ -8,9 +8,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-/**
- * Mapper MapStruct para transformaciones entre DetallePedido y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface DetallePedidoMapper {
 

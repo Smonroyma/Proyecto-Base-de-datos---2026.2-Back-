@@ -37,9 +37,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Implementación de la lógica de negocio para el flujo V2 Pago -> Factura con 19% IVA.
- */
 @Service
 public class FacturaServiceImpl implements FacturaService {
 
@@ -95,7 +92,6 @@ public class FacturaServiceImpl implements FacturaService {
                     pedido.getIdPedido()));
         }
 
-        // La factura no persiste id_usuario ni id_cliente: ambos se resuelven a través del Pedido (1:1).
         Long idUsuarioPedido = pedido.getIdUsuario();
         Staff staff = usuarioRepository.findById(idUsuarioPedido)
                 .orElseThrow(() -> new UsuarioNotFoundException(idUsuarioPedido));
@@ -113,7 +109,6 @@ public class FacturaServiceImpl implements FacturaService {
             throw new PagoInvalidoException("El monto de la propina no puede ser negativo");
         }
 
-        // Subtotal calculado dinámicamente (cantidad * precio de cada producto del detalle); no se persiste.
         double subtotal = SubtotalCalculator.calcularSubtotal(pedido);
         double impuesto = Math.round(subtotal * PORCENTAJE_IVA * 100.0) / 100.0;
         double totalCalculado = Math.round((subtotal + impuesto + propina) * 100.0) / 100.0;

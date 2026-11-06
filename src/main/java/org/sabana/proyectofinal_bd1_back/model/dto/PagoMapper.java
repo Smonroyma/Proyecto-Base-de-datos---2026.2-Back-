@@ -6,9 +6,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Pago;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para transformar entre Pago y sus DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface PagoMapper {
 

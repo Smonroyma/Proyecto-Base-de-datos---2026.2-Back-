@@ -11,9 +11,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para el registro o actualización de un miembro de Staff (Administrador o Mesero).
- */
 @Data
 @Builder
 @NoArgsConstructor

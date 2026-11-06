@@ -28,9 +28,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Controlador REST para la gestión de pedidos y comandas en Savana Data Coffee.
- */
 @RestController
 @RequestMapping("/api/pedidos")
 @Tag(name = "Pedidos", description = "Endpoints para la creación, consulta, control de estados unidireccional y cancelación de pedidos en mesa")

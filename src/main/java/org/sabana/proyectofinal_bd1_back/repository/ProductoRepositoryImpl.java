@@ -12,9 +12,6 @@ import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de ProductoRepository utilizando sentencias SQL nativas y JdbcTemplate.
- */
 @Repository
 public class ProductoRepositoryImpl implements ProductoRepository {
 

@@ -26,11 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Implementación de la lógica de negocio para la administración de reservas.
- * Regla crítica: Los clientes se guardan permanentemente al reservar por primera vez
- * y se reutilizan por su correo único. Jamás se elimina automáticamente a un cliente.
- */
 @Service
 public class ReservaServiceImpl implements ReservaService {
 

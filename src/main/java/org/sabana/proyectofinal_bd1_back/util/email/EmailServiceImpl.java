@@ -13,11 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-/**
- * Implementación asíncrona de EmailService utilizando JavaMailSender y plantillas HTML multiparte.
- * Incluye fallback seguro a consola cuando el servidor SMTP o JavaMailSender no están disponibles,
- * garantizando que un fallo de correo nunca interrumpa las peticiones HTTP ni las transacciones en BD.
- */
 @Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {

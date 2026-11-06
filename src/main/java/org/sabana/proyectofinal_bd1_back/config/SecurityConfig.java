@@ -23,10 +23,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Configuración central de seguridad Spring Security V2 desacoplada de JPA y basada en JWT.
- * Implementa la matriz estricta de roles y permisos (Público/Cliente, ADMINISTRADOR, MESERO).
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -79,7 +75,7 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Rutas Públicas (Cliente sin cuenta, Login/2FA Staff, Documentación y Consola H2)
+
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/verificar-2fa",
@@ -97,13 +93,11 @@ public class SecurityConfig {
                                 && !request.getParameter("correo").isBlank()).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/reservas").permitAll()
 
-                        // 2. Operaciones Exclusivas de MESERO (El Administrador tiene PROHIBIDO 403 tomar pedidos o procesar pagos)
                         .requestMatchers(HttpMethod.POST, "/api/pedidos", "/api/pedidos/**").hasRole("MESERO")
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").hasRole("MESERO")
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasRole("MESERO")
                         .requestMatchers(HttpMethod.POST, "/api/pagos", "/api/pagos/**").hasRole("MESERO")
 
-                        // 3. Operaciones Exclusivas de ADMINISTRADOR
                         .requestMatchers(
                                 "/api/auth/registro",
                                 "/api/usuarios/**",
@@ -123,7 +117,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/metodos-pago/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/metodos-pago/**").hasRole("ADMINISTRADOR")
 
-                        // 4. Operaciones Compartidas entre ADMINISTRADOR y MESERO
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "MESERO")
                         .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "MESERO")
                         .requestMatchers(HttpMethod.GET, "/api/mesas/**").hasAnyRole("ADMINISTRADOR", "MESERO")

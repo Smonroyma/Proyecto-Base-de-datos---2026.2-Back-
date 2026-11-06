@@ -13,9 +13,6 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DTO de entrada para procesar el pago de un pedido (POST /api/pagos) y generar automáticamente su factura con 19% IVA.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -34,9 +34,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para la gestión de reservas en Savana Data Coffee.
- */
 @RestController
 @RequestMapping("/api/reservas")
 @Tag(name = "Reservas", description = "Endpoints para la gestión, control de disponibilidad, búsqueda por correo único y asignación de mesas")

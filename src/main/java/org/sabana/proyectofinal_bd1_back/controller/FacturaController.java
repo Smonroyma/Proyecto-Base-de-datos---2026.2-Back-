@@ -16,10 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Controlador REST de solo lectura para la consulta de facturas en Savana Data Coffee.
- * Regla V2: Las facturas se generan automáticamente al registrar el pago en POST /api/pagos.
- */
 @RestController
 @RequestMapping("/api/facturas")
 @Tag(name = "Facturas", description = "Endpoints de consulta de comprobantes y facturas electrónicas (IVA 19%)")

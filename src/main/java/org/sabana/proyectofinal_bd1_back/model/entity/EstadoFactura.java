@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.model.entity;
 
-/**
- * Enumeración con los estados del ciclo de vida de una Factura en Savana Data Coffee.
- */
 public enum EstadoFactura {
     EMITIDA,
     ANULADA,

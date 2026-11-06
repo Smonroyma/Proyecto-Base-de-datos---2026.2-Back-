@@ -7,11 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad de dominio Pago.
- * POJO puro sin anotaciones de persistencia JPA.
- * Regla V3: Usa 'monto' y no contiene 'referenciaTransaccion'.
- */
 @Data
 @Builder
 @NoArgsConstructor

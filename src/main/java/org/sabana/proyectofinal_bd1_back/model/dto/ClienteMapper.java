@@ -7,9 +7,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Cliente;
 
 import java.util.List;
 
-/**
- * Mapper MapStruct para la conversión entre Cliente y sus respectivos DTOs.
- */
 @Mapper(componentModel = "spring")
 public interface ClienteMapper {
 

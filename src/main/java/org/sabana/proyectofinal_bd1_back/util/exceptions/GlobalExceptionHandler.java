@@ -12,9 +12,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Manejador global centralizado de excepciones para la API REST.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

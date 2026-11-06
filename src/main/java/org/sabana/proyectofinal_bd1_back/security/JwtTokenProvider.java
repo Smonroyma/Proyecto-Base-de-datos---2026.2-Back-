@@ -14,9 +14,6 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-/**
- * Proveedor de utilidades para generación, firma HMAC-SHA256 y validación de tokens JWT.
- */
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -31,9 +28,6 @@ public class JwtTokenProvider {
         this.jwtExpirationMs = jwtExpirationMs;
     }
 
-    /**
-     * Genera un token JWT firmado para el miembro de Staff con claims de correo, rol (ADMINISTRADOR o MESERO) e idUsuario.
-     */
     public String generateToken(Staff staff) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
@@ -55,31 +49,19 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /**
-     * Extrae el correo (subject) del token JWT.
-     */
     public String getEmailFromToken(String token) {
         return getClaims(token).getSubject();
     }
 
-    /**
-     * Extrae el rol operativo del token JWT.
-     */
     public String getRolFromToken(String token) {
         return getClaims(token).get("rol", String.class);
     }
 
-    /**
-     * Extrae el idUsuario del token JWT.
-     */
     public Long getIdUsuarioFromToken(String token) {
         Number id = getClaims(token).get("idUsuario", Number.class);
         return id != null ? id.longValue() : null;
     }
 
-    /**
-     * Valida la firma y tiempo de vigencia del token JWT.
-     */
     public boolean validateToken(String token) {
         try {
             Jwts.parser()

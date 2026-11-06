@@ -1,8 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.util.exceptions;
 
-/**
- * Excepción lanzada cuando una reserva solicitada no existe en el sistema.
- */
 public class ReservaNotFoundException extends ResourceNotFoundException {
 
     public ReservaNotFoundException(Long idReserva) {

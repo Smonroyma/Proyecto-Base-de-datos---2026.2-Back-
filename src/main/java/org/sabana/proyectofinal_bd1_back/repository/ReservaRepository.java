@@ -7,10 +7,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrato de persistencia para la entidad Reserva.
- * Todas las operaciones se realizan exclusivamente mediante SQL nativo.
- */
 public interface ReservaRepository {
 
     Optional<Reserva> findById(Long id);

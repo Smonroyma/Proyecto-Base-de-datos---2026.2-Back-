@@ -15,19 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de persistencia para Factura mediante SQL nativo puro y JdbcTemplate.
- */
 @Repository
 public class FacturaRepositoryImpl implements FacturaRepository {
 
     private final JdbcTemplate jdbcTemplate;
     private final PagoFacturaRepository pagoFacturaRepository;
 
-    /**
-     * La factura ya no persiste id_cliente ni id_usuario: el cliente y el mesero
-     * se resuelven navegando la relación 1:1 obligatoria factura -> pedido.
-     */
     private static final String BASE_SELECT = """
             SELECT f.num_factura, f.pedido_id_pedido AS id_pedido,
                    f.fecha, f.estado, f.propina, f.impuesto, f.total,

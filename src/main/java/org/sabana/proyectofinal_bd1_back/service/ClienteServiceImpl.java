@@ -12,11 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Implementación de la lógica de negocio para la gestión de clientes.
- * Regla crítica: Los clientes siempre se guardan permanentemente en la BD y solo se eliminan
- * cuando el Administrador invoca explícitamente el endpoint de eliminación.
- */
 @Service
 public class ClienteServiceImpl implements ClienteService {
 

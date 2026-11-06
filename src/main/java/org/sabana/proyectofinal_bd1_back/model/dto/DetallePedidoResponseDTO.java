@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de salida para un ítem de detalle dentro de un pedido.
- */
 @Data
 @Builder
 @NoArgsConstructor

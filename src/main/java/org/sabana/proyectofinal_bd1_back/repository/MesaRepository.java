@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Mesa;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para la gestión de persistencia de Mesa mediante SQL nativo.
- */
 public interface MesaRepository {
 
     Optional<Mesa> findByNumeroMesa(Integer numeroMesa);

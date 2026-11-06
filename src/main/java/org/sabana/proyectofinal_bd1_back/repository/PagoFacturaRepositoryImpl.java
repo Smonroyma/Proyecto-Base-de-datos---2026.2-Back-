@@ -14,9 +14,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de persistencia para Pago (tabla pago) utilizando SQL nativo y JdbcTemplate.
- */
 @Repository
 public class PagoFacturaRepositoryImpl implements PagoFacturaRepository {
 

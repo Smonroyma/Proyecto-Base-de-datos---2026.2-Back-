@@ -1,9 +1,5 @@
 package org.sabana.proyectofinal_bd1_back.model.entity;
 
-/**
- * Roles operativos de Staff en el sistema Savana Data Coffee.
- * Determinados según la tabla hija (administrador o mesero).
- */
 public enum RolUsuario {
     ADMINISTRADOR,
     MESERO;

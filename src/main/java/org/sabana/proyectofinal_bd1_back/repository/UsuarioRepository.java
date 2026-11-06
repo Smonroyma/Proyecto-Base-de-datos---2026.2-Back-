@@ -5,10 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.entity.Staff;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para la gestión de persistencia de la jerarquía Staff (Administrador y Mesero) mediante SQL nativo.
- * El código OTP 2FA no se almacena en base de datos, sino en memoria (ConcurrentHashMap).
- */
 public interface UsuarioRepository {
 
     Optional<Staff> findById(Long id);

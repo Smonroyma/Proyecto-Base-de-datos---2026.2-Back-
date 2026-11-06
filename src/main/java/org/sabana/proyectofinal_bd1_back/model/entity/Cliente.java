@@ -5,11 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Entidad de dominio Cliente.
- * POJO puro sin anotaciones de persistencia JPA.
- * Representa la tabla 'cliente'.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de salida con el balance cuantitativo y operativo en tiempo real de Savana Data Coffee.
- */
 @Data
 @Builder
 @NoArgsConstructor

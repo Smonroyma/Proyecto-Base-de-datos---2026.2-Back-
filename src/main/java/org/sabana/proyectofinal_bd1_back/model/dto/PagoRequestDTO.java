@@ -10,9 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de entrada para un ítem de pago individual asociado a una factura.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -5,11 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Entidad de dominio Categoria.
- * POJO puro sin anotaciones de persistencia JPA.
- * La llave primaria es nombre_categoria (String).
- */
 @Data
 @Builder
 @NoArgsConstructor

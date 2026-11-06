@@ -7,11 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Entidad de dominio Mesero que hereda 1:1 de Staff.
- * POJO puro sin anotaciones de persistencia JPA.
- * Incluye el atributo estado (ACTIVO / INACTIVO).
- */
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -20,7 +15,7 @@ import lombok.experimental.SuperBuilder;
 @ToString(callSuper = true)
 public class Mesero extends Staff {
 
-    private String estado; // ACTIVO, INACTIVO
+    private String estado;
 
     public boolean isActivo() {
         return estado == null || "ACTIVO".equalsIgnoreCase(estado.trim());

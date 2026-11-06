@@ -5,9 +5,6 @@ import org.sabana.proyectofinal_bd1_back.model.dto.MetodoPagoResponseDTO;
 
 import java.util.List;
 
-/**
- * Contrato de servicio para la gestión de métodos de pago.
- */
 public interface MetodoPagoService {
 
     List<MetodoPagoResponseDTO> obtenerMetodosPago(Boolean soloActivos);

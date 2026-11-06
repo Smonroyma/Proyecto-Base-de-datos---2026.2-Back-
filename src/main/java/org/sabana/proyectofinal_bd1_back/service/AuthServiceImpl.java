@@ -22,17 +22,11 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Implementación de la lógica de autenticación JWT y verificación en dos pasos (2FA) con caché OTP en memoria.
- */
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private static final int OTP_VIGENCIA_MINUTOS = 5;
 
-    /**
-     * Entrada inmutable para almacenar el código OTP y su fecha de expiración en memoria.
-     */
     public record OtpEntry(String codigoOtp, LocalDateTime expiracion) {
     }
 
@@ -87,7 +81,6 @@ public class AuthServiceImpl implements AuthService {
 
         UsuarioResponseDTO usuarioDTO = usuarioMapper.toResponseDTO(staff);
 
-        // Flujo con 2FA habilitado: almacenar OTP en ConcurrentHashMap en memoria
         if (Boolean.TRUE.equals(staff.getDosFacHab())) {
             String codigoOtp = String.format("%06d", secureRandom.nextInt(1_000_000));
             LocalDateTime expiracion = LocalDateTime.now().plusMinutes(OTP_VIGENCIA_MINUTOS);
@@ -106,7 +99,6 @@ public class AuthServiceImpl implements AuthService {
                     .build();
         }
 
-        // Flujo directo sin 2FA
         String token = jwtTokenProvider.generateToken(staff);
         return AuthResponseDTO.builder()
                 .token(token)
@@ -139,7 +131,6 @@ public class AuthServiceImpl implements AuthService {
             throw new OtpExpiredException("El código de verificación ha expirado. Por favor, solicita uno nuevo iniciando sesión.");
         }
 
-        // OTP válido: remover de memoria y emitir token JWT
         otpCache.remove(key);
         String token = jwtTokenProvider.generateToken(staff);
 
@@ -152,16 +143,10 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
-    /**
-     * Registra manualmente un OTP en la caché en memoria (útil para pruebas unitarias).
-     */
     public void guardarOtpEnMemoria(String correo, String codigoOtp, LocalDateTime expiracion) {
         otpCache.put(normalizarCorreoKey(correo), new OtpEntry(codigoOtp, expiracion));
     }
 
-    /**
-     * Obtiene la entrada OTP almacenada en memoria para un correo dado.
-     */
     public OtpEntry obtenerOtpEnMemoria(String correo) {
         return otpCache.get(normalizarCorreoKey(correo));
     }
